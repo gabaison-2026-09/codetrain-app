@@ -26,6 +26,7 @@ class _CodeTrainBottomNavigationState extends State<CodeTrainBottomNavigation>
   late final AnimationController _animationController;
   late final Animation<double> _animation;
   int _selectedIndex = 2;
+  int _previousSelectedIndex = 2;
 
   @override
   void initState() {
@@ -55,11 +56,12 @@ class _CodeTrainBottomNavigationState extends State<CodeTrainBottomNavigation>
       }
     }
 
-    if (nearestIndex == _selectedIndex && _animationController.isCompleted) {
+    if (nearestIndex == _selectedIndex) {
       return;
     }
 
     setState(() {
+      _previousSelectedIndex = _selectedIndex;
       _selectedIndex = nearestIndex;
     });
     _animationController.forward(from: 0);
@@ -78,6 +80,7 @@ class _CodeTrainBottomNavigationState extends State<CodeTrainBottomNavigation>
               bottomInset: widget.bottomInset,
               selectedX: _tabCenterXPositions[_selectedIndex],
               selectedIndex: _selectedIndex,
+              previousSelectedIndex: _previousSelectedIndex,
               selectedLabel: _tabLabels[_selectedIndex],
               popProgress: _animation.value,
             ),
@@ -101,18 +104,22 @@ class _AnimatedBottomNavigationPainter extends _BottomNavigationPainter {
     required super.bottomInset,
     required this.selectedX,
     required this.selectedIndex,
+    required this.previousSelectedIndex,
     required this.selectedLabel,
     required this.popProgress,
   });
 
   final double selectedX;
   final int selectedIndex;
+  final int previousSelectedIndex;
   final String selectedLabel;
   final double popProgress;
 
   static const _black = Color(0xff050505);
   static const _border = Color(0xffb8b8b8);
   static const _selectionPopOvershoot = 1.35;
+  static const _tabCenterXPositions = <double>[118, 302, 483, 668, 851];
+  static const _selectionPushDistance = 34.0;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -146,6 +153,17 @@ class _AnimatedBottomNavigationPainter extends _BottomNavigationPainter {
         selectionProgressInput +
         (easedSelectionProgress - selectionProgressInput) *
             _selectionPopOvershoot;
+    final layoutProgress = selectionPopProgress.clamp(0.0, 1.0).toDouble();
+    final previousTabCenters = _restingTabCenters(previousSelectedIndex);
+    final selectedTabCenters = _restingTabCenters(selectedIndex);
+    final tabCenters = <double>[
+      for (var index = 0; index < _tabCenterXPositions.length; index++)
+        _lerp(
+          previousTabCenters[index],
+          selectedTabCenters[index],
+          layoutProgress,
+        ),
+    ];
 
     // The tray bulge and every selected element share this progress so the
     // icon stays inside its surrounding circle throughout the animation.
@@ -243,22 +261,26 @@ class _AnimatedBottomNavigationPainter extends _BottomNavigationPainter {
       ..style = PaintingStyle.stroke
       ..strokeWidth = 5
       ..strokeCap = StrokeCap.round;
-    canvas.drawLine(const Offset(118, 236), const Offset(851, 236), line);
+    canvas.drawLine(
+      Offset(tabCenters.first, 236),
+      Offset(tabCenters.last, 236),
+      line,
+    );
 
     if (selectedIndex != 0) {
-      _drawCalendar(canvas, const Offset(118, 169));
+      _drawCalendar(canvas, Offset(tabCenters[0], 169));
     }
     if (selectedIndex != 1) {
-      _drawLearn(canvas, const Offset(302, 169));
+      _drawLearn(canvas, Offset(tabCenters[1], 169));
     }
     if (selectedIndex != 3) {
-      _drawTask(canvas, const Offset(668, 169));
+      _drawTask(canvas, Offset(tabCenters[3], 169));
     }
     if (selectedIndex != 4) {
-      _drawProfile(canvas, const Offset(851, 169));
+      _drawProfile(canvas, Offset(tabCenters[4], 169));
     }
     if (selectedIndex != 2) {
-      _drawHouseMark(canvas, const Offset(483, 169), 0.55);
+      _drawHouseMark(canvas, Offset(tabCenters[2], 169), 0.55);
     }
 
     final separationProgress = Curves.easeInOutCubic.transform(
@@ -272,31 +294,53 @@ class _AnimatedBottomNavigationPainter extends _BottomNavigationPainter {
         attached: false,
       );
     }
-    _drawSelectedIcon(canvas, selectionPopProgress);
+    _drawSelectedIcon(
+      canvas,
+      selectionPopProgress,
+      selectedCenterX: tabCenters[selectedIndex],
+    );
 
     for (var index = 0; index < 5; index++) {
       _drawNode(
         canvas,
-        Offset(const <double>[118, 302, 483, 668, 851][index], 236),
+        Offset(tabCenters[index], 236),
         index == selectedIndex ? 15 + 8 * selectionPopProgress : 15,
       );
     }
 
-    const centers = <double>[118, 302, 483, 668, 851];
     const labels = <String>['Calendar', 'Learn', 'Home', 'Task', 'Profile'];
     for (var index = 0; index < labels.length; index++) {
       if (index != selectedIndex) {
-        _drawLabel(canvas, labels[index], Offset(centers[index], 270), 26);
+        _drawLabel(canvas, labels[index], Offset(tabCenters[index], 270), 26);
       }
     }
     _drawLabel(
       canvas,
       selectedLabel,
-      Offset(selectedX, 270 - 6 * selectionPopProgress),
+      Offset(
+        tabCenters[selectedIndex],
+        270 - 6 * selectionPopProgress,
+      ),
       26 + 17 * selectionPopProgress,
     );
 
     canvas.restore();
+  }
+
+  List<double> _restingTabCenters(int selectedIndex) {
+    return <double>[
+      for (var index = 0; index < _tabCenterXPositions.length; index++)
+        index == selectedIndex
+            ? _tabCenterXPositions[index]
+            : _tabCenterXPositions[index] +
+                (index < selectedIndex
+                    ? -_selectionPushDistance
+                    : _selectionPushDistance),
+    ];
+  }
+
+  double _lerp(double start, double end, double progress) {
+    return start + (end - start) * progress;
   }
 
   void _drawSelectionBubble(
@@ -349,7 +393,11 @@ class _AnimatedBottomNavigationPainter extends _BottomNavigationPainter {
     }
   }
 
-  void _drawSelectedIcon(Canvas canvas, double selectionPopProgress) {
+  void _drawSelectedIcon(
+    Canvas canvas,
+    double selectionPopProgress, {
+    required double selectedCenterX,
+  }) {
     const baseCenters = <Offset>[
       Offset(118, 169),
       Offset(302, 169),
@@ -358,7 +406,10 @@ class _AnimatedBottomNavigationPainter extends _BottomNavigationPainter {
       Offset(851, 169),
     ];
     final baseCenter = baseCenters[selectedIndex];
-    final selectedCenter = Offset(selectedX, 169 - 67 * selectionPopProgress);
+    final selectedCenter = Offset(
+      selectedCenterX,
+      169 - 67 * selectionPopProgress,
+    );
     const iconWidthScale = <double>[1.44, 1.17, 1.0, 1.28, 1.28];
     final iconScale =
         iconWidthScale[selectedIndex] *
@@ -392,6 +443,7 @@ class _AnimatedBottomNavigationPainter extends _BottomNavigationPainter {
     return oldDelegate.bottomInset != bottomInset ||
         oldDelegate.selectedX != selectedX ||
         oldDelegate.selectedIndex != selectedIndex ||
+        oldDelegate.previousSelectedIndex != previousSelectedIndex ||
         oldDelegate.popProgress != popProgress;
   }
 }
@@ -480,6 +532,8 @@ class _BottomNavigationPainter extends CustomPainter {
   }
 
   void _drawCalendar(Canvas canvas, Offset center) {
+    canvas.save();
+    canvas.translate(center.dx - 118, center.dy - 169);
     final paint = Paint()
       ..color = _black
       ..style = PaintingStyle.stroke
@@ -488,7 +542,7 @@ class _BottomNavigationPainter extends CustomPainter {
       ..strokeCap = StrokeCap.round;
     final rect = RRect.fromRectAndRadius(
       Rect.fromCenter(
-        center: Offset(center.dx, center.dy + 8),
+        center: const Offset(118, 177),
         width: 57,
         height: 58,
       ),
@@ -511,9 +565,12 @@ class _BottomNavigationPainter extends CustomPainter {
     for (final dot in dots) {
       canvas.drawCircle(dot, 3.2, dotPaint);
     }
+    canvas.restore();
   }
 
   void _drawLearn(Canvas canvas, Offset center) {
+    canvas.save();
+    canvas.translate(center.dx - 302, center.dy - 169);
     final paint = Paint()
       ..color = _black
       ..style = PaintingStyle.stroke
@@ -530,14 +587,17 @@ class _BottomNavigationPainter extends CustomPainter {
     canvas.drawPath(left, paint);
     canvas.drawPath(right, paint);
     canvas.drawLine(const Offset(310, 143), const Offset(295, 194), paint);
+    canvas.restore();
   }
 
   void _drawTask(Canvas canvas, Offset center) {
+    canvas.save();
+    canvas.translate(center.dx - 668, center.dy - 169);
     final outline = Paint()
       ..color = _black
       ..style = PaintingStyle.stroke
       ..strokeWidth = 5;
-    canvas.drawCircle(center, 32, outline);
+    canvas.drawCircle(const Offset(668, 169), 32, outline);
     final check = Path()
       ..moveTo(652, 170)
       ..lineTo(663, 181)
@@ -551,20 +611,24 @@ class _BottomNavigationPainter extends CustomPainter {
         ..strokeCap = StrokeCap.square
         ..strokeJoin = StrokeJoin.miter,
     );
+    canvas.restore();
   }
 
   void _drawProfile(Canvas canvas, Offset center) {
+    canvas.save();
+    canvas.translate(center.dx - 851, center.dy - 169);
     final outline = Paint()
       ..color = _black
       ..style = PaintingStyle.stroke
       ..strokeWidth = 5;
-    canvas.drawCircle(center, 32, outline);
+    canvas.drawCircle(const Offset(851, 169), 32, outline);
     canvas.drawCircle(const Offset(851, 160), 10, outline);
     final shoulders = Path()
       ..moveTo(827, 191)
       ..cubicTo(834, 181, 843, 178, 851, 178)
       ..cubicTo(860, 178, 869, 181, 876, 191);
     canvas.drawPath(shoulders, outline);
+    canvas.restore();
   }
 
   void _drawHouseMark(Canvas canvas, Offset center, double scale) {
