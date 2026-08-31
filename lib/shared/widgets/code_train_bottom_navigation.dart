@@ -135,22 +135,31 @@ class _AnimatedBottomNavigationPainter extends _BottomNavigationPainter {
     );
     final notchEndPoint = Offset(selectedX + 101 * 0.96, 102 + 101 * 0.29);
     final isAttached = normalizedProgress < 0.70;
-    final bulgeProgress = Curves.easeOutBack.transform(
+    final trayBulgeProgress = Curves.easeOutBack.transform(
       (normalizedProgress / 0.70).clamp(0.0, 1.0),
+    );
+    // Use one progress value for the selected icon and the lower node/label.
+    // This keeps the burst and the lower selection expansion in sync.
+    final selectionPopProgress = Curves.easeOutBack.transform(
+      normalizedProgress,
     );
 
     // Before the pop, the tray and the bulge are a single smooth path.
     final tray = Path()..moveTo(0, 92);
     if (isAttached) {
-      final bulgeRadius = 86 * bulgeProgress;
-      final bulgeCenterY = 92 + 10 * bulgeProgress;
-      final bulgeHalfWidth = math.sqrt(86 * 86 - 10 * 10) * bulgeProgress;
+      final bulgeRadius = 86 * trayBulgeProgress;
+      final bulgeCenterY = 92 + 10 * trayBulgeProgress;
+      final bulgeHalfWidth =
+          math.sqrt(86 * 86 - 10 * 10) * trayBulgeProgress;
       if (bulgeRadius > 0) {
         final arcSweep =
             math.pi - 2 * math.atan2(10, math.sqrt(86 * 86 - 10 * 10));
         const joinAngle = 0.32;
-        final startAngle =
-            math.atan2(-10 * bulgeProgress, -bulgeHalfWidth) + joinAngle;
+        final startAngle = math.atan2(
+              -10 * trayBulgeProgress,
+              -bulgeHalfWidth,
+            ) +
+            joinAngle;
         final endAngle = startAngle + arcSweep - 2 * joinAngle;
         final circle = Rect.fromCircle(
           center: Offset(selectedX, bulgeCenterY),
@@ -261,13 +270,13 @@ class _AnimatedBottomNavigationPainter extends _BottomNavigationPainter {
         attached: false,
       );
     }
-    _drawSelectedIcon(canvas);
+    _drawSelectedIcon(canvas, selectionPopProgress);
 
     for (var index = 0; index < 5; index++) {
       _drawNode(
         canvas,
         Offset(const <double>[118, 302, 483, 668, 851][index], 236),
-        index == selectedIndex ? 15 + 8 * separationProgress : 15,
+        index == selectedIndex ? 15 + 8 * selectionPopProgress : 15,
       );
     }
 
@@ -278,12 +287,11 @@ class _AnimatedBottomNavigationPainter extends _BottomNavigationPainter {
         _drawLabel(canvas, labels[index], Offset(centers[index], 270), 26);
       }
     }
-    final labelProgress = separationProgress;
     _drawLabel(
       canvas,
       selectedLabel,
-      Offset(selectedX, 270 - 6 * labelProgress),
-      26 + 17 * labelProgress,
+      Offset(selectedX, 270 - 6 * selectionPopProgress),
+      26 + 17 * selectionPopProgress,
     );
 
     canvas.restore();
@@ -339,7 +347,7 @@ class _AnimatedBottomNavigationPainter extends _BottomNavigationPainter {
     }
   }
 
-  void _drawSelectedIcon(Canvas canvas) {
+  void _drawSelectedIcon(Canvas canvas, double selectionPopProgress) {
     const baseCenters = <Offset>[
       Offset(118, 169),
       Offset(302, 169),
@@ -348,21 +356,15 @@ class _AnimatedBottomNavigationPainter extends _BottomNavigationPainter {
       Offset(851, 169),
     ];
     final baseCenter = baseCenters[selectedIndex];
-    final progress = popProgress.clamp(0.0, 1.0);
-    final bulgeProgress = Curves.easeOutBack.transform(
-      (progress / 0.70).clamp(0.0, 1.0),
+    final selectedCenter = Offset(
+      selectedX,
+      169 - 67 * selectionPopProgress,
     );
-    final separationProgress = Curves.easeInOutCubic.transform(
-      ((progress - 0.70) / 0.30).clamp(0.0, 1.0),
-    );
-    final selectedCenter = Offset(selectedX, 169 - 67 * bulgeProgress);
     const iconWidthScale = <double>[1.44, 1.17, 1.0, 1.28, 1.28];
     final iconScale =
         iconWidthScale[selectedIndex] *
-        (0.58 + 0.54 * bulgeProgress) *
-        (1 +
-            0.16 * math.sin(math.pi * bulgeProgress) +
-            0.06 * math.sin(math.pi * separationProgress));
+        (0.58 + 0.54 * selectionPopProgress) *
+        (1 + 0.16 * math.sin(math.pi * selectionPopProgress));
     canvas.save();
     canvas.translate(
       selectedCenter.dx - baseCenter.dx,
@@ -377,7 +379,7 @@ class _AnimatedBottomNavigationPainter extends _BottomNavigationPainter {
       case 1:
         _drawLearn(canvas, baseCenter);
       case 2:
-        _drawHouseMark(canvas, baseCenter, 0.55 + 0.45 * bulgeProgress);
+        _drawHouseMark(canvas, baseCenter, 0.55 + 0.45 * selectionPopProgress);
       case 3:
         _drawTask(canvas, baseCenter);
       case 4:
