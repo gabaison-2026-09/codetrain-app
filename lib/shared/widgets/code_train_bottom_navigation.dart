@@ -112,11 +112,12 @@ class _AnimatedBottomNavigationPainter extends _BottomNavigationPainter {
 
   static const _black = Color(0xff050505);
   static const _border = Color(0xffb8b8b8);
+  static const _selectionPopOvershoot = 2.0;
 
   @override
   void paint(Canvas canvas, Size size) {
     final sx = size.width / 973;
-    final normalizedProgress = popProgress.clamp(0.0, 1.0);
+    final normalizedProgress = popProgress.clamp(0.0, 1.0).toDouble();
 
     canvas.save();
     canvas.scale(sx, sx);
@@ -135,31 +136,32 @@ class _AnimatedBottomNavigationPainter extends _BottomNavigationPainter {
     );
     final notchEndPoint = Offset(selectedX + 101 * 0.96, 102 + 101 * 0.29);
     final isAttached = normalizedProgress < 0.70;
-    final trayBulgeProgress = Curves.easeOutBack.transform(
-      (normalizedProgress / 0.70).clamp(0.0, 1.0),
+    final selectionProgressInput = (normalizedProgress / 0.70)
+        .clamp(0.0, 1.0)
+        .toDouble();
+    final easedSelectionProgress = Curves.easeOutBack.transform(
+      selectionProgressInput,
     );
-    // Use one progress value for the selected icon and the lower node/label.
-    // This keeps the burst and the lower selection expansion in sync.
-    final selectionPopProgress = Curves.easeOutBack.transform(
-      normalizedProgress,
-    );
+    final selectionPopProgress =
+        selectionProgressInput +
+        (easedSelectionProgress - selectionProgressInput) *
+            _selectionPopOvershoot;
 
+    // The tray bulge and every selected element share this progress so the
+    // icon stays inside its surrounding circle throughout the animation.
     // Before the pop, the tray and the bulge are a single smooth path.
     final tray = Path()..moveTo(0, 92);
     if (isAttached) {
-      final bulgeRadius = 86 * trayBulgeProgress;
-      final bulgeCenterY = 92 + 10 * trayBulgeProgress;
+      final bulgeRadius = 86 * selectionPopProgress;
+      final bulgeCenterY = 92 + 10 * selectionPopProgress;
       final bulgeHalfWidth =
-          math.sqrt(86 * 86 - 10 * 10) * trayBulgeProgress;
+          math.sqrt(86 * 86 - 10 * 10) * selectionPopProgress;
       if (bulgeRadius > 0) {
         final arcSweep =
             math.pi - 2 * math.atan2(10, math.sqrt(86 * 86 - 10 * 10));
         const joinAngle = 0.32;
-        final startAngle = math.atan2(
-              -10 * trayBulgeProgress,
-              -bulgeHalfWidth,
-            ) +
-            joinAngle;
+        final startAngle =
+            math.atan2(-10 * selectionPopProgress, -bulgeHalfWidth) + joinAngle;
         final endAngle = startAngle + arcSweep - 2 * joinAngle;
         final circle = Rect.fromCircle(
           center: Offset(selectedX, bulgeCenterY),
@@ -356,14 +358,11 @@ class _AnimatedBottomNavigationPainter extends _BottomNavigationPainter {
       Offset(851, 169),
     ];
     final baseCenter = baseCenters[selectedIndex];
-    final selectedCenter = Offset(
-      selectedX,
-      169 - 67 * selectionPopProgress,
-    );
+    final selectedCenter = Offset(selectedX, 169 - 67 * selectionPopProgress);
     const iconWidthScale = <double>[1.44, 1.17, 1.0, 1.28, 1.28];
     final iconScale =
         iconWidthScale[selectedIndex] *
-        (0.58 + 0.54 * selectionPopProgress) *
+        (0.58 + 0.40 * selectionPopProgress) *
         (1 + 0.16 * math.sin(math.pi * selectionPopProgress));
     canvas.save();
     canvas.translate(
