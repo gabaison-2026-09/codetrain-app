@@ -118,6 +118,9 @@ class _AnimatedBottomNavigationPainter extends _BottomNavigationPainter {
   static const _black = Color(0xff050505);
   static const _border = Color(0xffb8b8b8);
   static const _selectionPopOvershoot = 1.35;
+  static const _selectionJoinAngle = 0.22;
+  static const _selectionJoinWidth = 14.0;
+  static const _selectionJoinHandle = 14.0;
   static const _tabCenterXPositions = <double>[118, 302, 483, 668, 851];
   static const _selectionPushDistance = 34.0;
 
@@ -135,13 +138,6 @@ class _AnimatedBottomNavigationPainter extends _BottomNavigationPainter {
       ..style = PaintingStyle.stroke
       ..strokeWidth = 2.2;
 
-    final notchStart = math.max(0.0, selectedX - 153).toDouble();
-    final notchEnd = math.min(973.0, selectedX + 154).toDouble();
-    final notchStartPoint = Offset(
-      selectedX + 101 * 0.5 * -1.93,
-      102 + 101 * 0.29,
-    );
-    final notchEndPoint = Offset(selectedX + 101 * 0.96, 102 + 101 * 0.29);
     final isAttached = normalizedProgress < 0.70;
     final selectionProgressInput = (normalizedProgress / 0.70)
         .clamp(0.0, 1.0)
@@ -153,6 +149,11 @@ class _AnimatedBottomNavigationPainter extends _BottomNavigationPainter {
         selectionProgressInput +
         (easedSelectionProgress - selectionProgressInput) *
             _selectionPopOvershoot;
+    final separationProgress = Curves.easeInOutCubic.transform(
+      ((normalizedProgress - 0.70) / 0.30).clamp(0.0, 1.0),
+    );
+    // Keep the circle, nodes, labels, and connection line on the same layout
+    // progress so they contract together before the bubble separates.
     final layoutProgress = selectionPopProgress.clamp(0.0, 1.0).toDouble();
     final previousTabCenters = _restingTabCenters(previousSelectedIndex);
     final selectedTabCenters = _restingTabCenters(selectedIndex);
@@ -164,6 +165,17 @@ class _AnimatedBottomNavigationPainter extends _BottomNavigationPainter {
           layoutProgress,
         ),
     ];
+    final selectionCenterX = tabCenters[selectedIndex];
+    final notchStart = math.max(0.0, selectionCenterX - 153).toDouble();
+    final notchEnd = math.min(973.0, selectionCenterX + 154).toDouble();
+    final notchStartPoint = Offset(
+      selectionCenterX + 101 * 0.5 * -1.93,
+      102 + 101 * 0.29,
+    );
+    final notchEndPoint = Offset(
+      selectionCenterX + 101 * 0.96,
+      102 + 101 * 0.29,
+    );
 
     // The tray bulge and every selected element share this progress so the
     // icon stays inside its surrounding circle throughout the animation.
@@ -177,26 +189,26 @@ class _AnimatedBottomNavigationPainter extends _BottomNavigationPainter {
       if (bulgeRadius > 0) {
         final arcSweep =
             math.pi - 2 * math.atan2(10, math.sqrt(86 * 86 - 10 * 10));
-        const joinAngle = 0.32;
         final startAngle =
-            math.atan2(-10 * selectionPopProgress, -bulgeHalfWidth) + joinAngle;
-        final endAngle = startAngle + arcSweep - 2 * joinAngle;
+            math.atan2(-10 * selectionPopProgress, -bulgeHalfWidth) +
+            _selectionJoinAngle;
+        final endAngle = startAngle + arcSweep - 2 * _selectionJoinAngle;
         final circle = Rect.fromCircle(
-          center: Offset(selectedX, bulgeCenterY),
+          center: Offset(selectionCenterX, bulgeCenterY),
           radius: bulgeRadius,
         );
         final arcStart = Offset(
-          selectedX + bulgeRadius * math.cos(startAngle),
+          selectionCenterX + bulgeRadius * math.cos(startAngle),
           bulgeCenterY + bulgeRadius * math.sin(startAngle),
         );
         final arcEnd = Offset(
-          selectedX + bulgeRadius * math.cos(endAngle),
+          selectionCenterX + bulgeRadius * math.cos(endAngle),
           bulgeCenterY + bulgeRadius * math.sin(endAngle),
         );
-        final joinWidth = math.min(20.0, bulgeRadius * 0.3);
-        final handle = math.min(20.0, bulgeRadius * 0.4);
-        final leftJoin = selectedX - bulgeHalfWidth - joinWidth;
-        final rightJoin = selectedX + bulgeHalfWidth + joinWidth;
+        final joinWidth = math.min(_selectionJoinWidth, bulgeRadius * 0.18);
+        final handle = math.min(_selectionJoinHandle, bulgeRadius * 0.25);
+        final leftJoin = selectionCenterX - bulgeHalfWidth - joinWidth;
+        final rightJoin = selectionCenterX + bulgeHalfWidth + joinWidth;
         tray
           ..lineTo(leftJoin, 92)
           ..cubicTo(
@@ -233,7 +245,7 @@ class _AnimatedBottomNavigationPainter extends _BottomNavigationPainter {
         )
         // A circular cut-out around the selected tab, with tangent joins.
         ..arcTo(
-          Rect.fromCircle(center: Offset(selectedX, 102), radius: 101),
+          Rect.fromCircle(center: Offset(selectionCenterX, 102), radius: 101),
           2.85,
           -2.56,
           false,
@@ -255,6 +267,27 @@ class _AnimatedBottomNavigationPainter extends _BottomNavigationPainter {
       ..close();
     canvas.drawPath(tray, fill);
     canvas.drawPath(tray, border);
+
+    // Cover the tray's connection line inside the growing circle, then draw
+    // only the visible upper arc while the circle is still attached.
+    final selectionBubbleProgress = selectionPopProgress
+        .clamp(0.0, double.infinity)
+        .toDouble();
+    final selectionBubbleCenter = Offset(
+      selectionCenterX,
+      isAttached ? 92 + 10 * selectionBubbleProgress : 102,
+    );
+    final selectionBubbleRadius = isAttached
+        ? 86 * selectionBubbleProgress
+        : 86 + 4 * math.sin(math.pi * separationProgress);
+    if (selectionBubbleRadius > 0) {
+      _drawSelectionBubble(
+        canvas,
+        selectionBubbleCenter,
+        selectionBubbleRadius,
+        attached: isAttached,
+      );
+    }
 
     final line = Paint()
       ..color = _black
@@ -283,21 +316,10 @@ class _AnimatedBottomNavigationPainter extends _BottomNavigationPainter {
       _drawHouseMark(canvas, Offset(tabCenters[2], 169), 0.55);
     }
 
-    final separationProgress = Curves.easeInOutCubic.transform(
-      ((normalizedProgress - 0.70) / 0.30).clamp(0.0, 1.0),
-    );
-    if (!isAttached) {
-      _drawSelectionBubble(
-        canvas,
-        const Offset(0, 0) + Offset(selectedX, 102),
-        86 + 4 * math.sin(math.pi * separationProgress),
-        attached: false,
-      );
-    }
     _drawSelectedIcon(
       canvas,
       selectionPopProgress,
-      selectedCenterX: tabCenters[selectedIndex],
+      selectedCenterX: selectionCenterX,
     );
 
     for (var index = 0; index < 5; index++) {
@@ -317,10 +339,7 @@ class _AnimatedBottomNavigationPainter extends _BottomNavigationPainter {
     _drawLabel(
       canvas,
       selectedLabel,
-      Offset(
-        tabCenters[selectedIndex],
-        270 - 6 * selectionPopProgress,
-      ),
+      Offset(tabCenters[selectedIndex], 270 - 6 * selectionPopProgress),
       26 + 17 * selectionPopProgress,
     );
 
@@ -333,9 +352,9 @@ class _AnimatedBottomNavigationPainter extends _BottomNavigationPainter {
         index == selectedIndex
             ? _tabCenterXPositions[index]
             : _tabCenterXPositions[index] +
-                (index < selectedIndex
-                    ? -_selectionPushDistance
-                    : _selectionPushDistance),
+                  (index < selectedIndex
+                      ? -_selectionPushDistance
+                      : _selectionPushDistance),
     ];
   }
 
@@ -358,7 +377,7 @@ class _AnimatedBottomNavigationPainter extends _BottomNavigationPainter {
     final outline = Paint()
       ..color = _border
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 5;
+      ..strokeWidth = attached ? 2.2 : 5;
     canvas.drawCircle(center, radius, outer);
     if (attached) {
       const trayTop = 92.0;
@@ -367,11 +386,13 @@ class _AnimatedBottomNavigationPainter extends _BottomNavigationPainter {
         final horizontalDistance = math.sqrt(
           radius * radius - verticalDistance * verticalDistance,
         );
-        var startAngle = math.atan2(verticalDistance, -horizontalDistance);
-        var endAngle = math.atan2(verticalDistance, horizontalDistance);
-        while (endAngle <= startAngle) {
-          endAngle += math.pi * 2;
-        }
+        final startAngle =
+            math.atan2(verticalDistance, -horizontalDistance) +
+            _selectionJoinAngle;
+        final arcSweep =
+            math.pi -
+            2 * math.atan2(verticalDistance.abs(), horizontalDistance);
+        final endAngle = startAngle + arcSweep - 2 * _selectionJoinAngle;
         canvas.drawArc(
           Rect.fromCircle(center: center, radius: radius),
           startAngle,
@@ -541,11 +562,7 @@ class _BottomNavigationPainter extends CustomPainter {
       ..strokeJoin = StrokeJoin.round
       ..strokeCap = StrokeCap.round;
     final rect = RRect.fromRectAndRadius(
-      Rect.fromCenter(
-        center: const Offset(118, 177),
-        width: 57,
-        height: 58,
-      ),
+      Rect.fromCenter(center: const Offset(118, 177), width: 57, height: 58),
       const Radius.circular(2),
     );
     canvas.drawRRect(rect, paint);

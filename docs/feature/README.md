@@ -4,7 +4,7 @@
 
 | 機能 | 仕様書 | 用途 | 主な実装箇所 |
 | --- | --- | --- | --- |
-| ボトムナビゲーション | [`bottom_navigation.md`](bottom_navigation.md) | ホーム画面下部に Calendar、Learn、Home、Task、Profile の5つのタブを表示し、選択状態とアニメーションを管理する。 | `lib/shared/widgets/code_train_bottom_navigation.dart`、`lib/features/home/presentation/home_page.dart` |
+| ボトムナビゲーション | [`bottom_navigation.md`](bottom_navigation.md) | ホーム画面下部に Calendar、Learn、Home、Task、Profile の5つのタブを表示し、選択状態とアニメーションを管理する。選択円と接続部の重なりを制御する。 | `lib/shared/widgets/code_train_bottom_navigation.dart`、`lib/features/home/presentation/home_page.dart` |
 
 ## 更新ルール
 
