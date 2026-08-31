@@ -112,7 +112,7 @@ class _AnimatedBottomNavigationPainter extends _BottomNavigationPainter {
 
   static const _black = Color(0xff050505);
   static const _border = Color(0xffb8b8b8);
-  static const _selectionPopOvershoot = 2.0;
+  static const _selectionPopOvershoot = 1.35;
 
   @override
   void paint(Canvas canvas, Size size) {
