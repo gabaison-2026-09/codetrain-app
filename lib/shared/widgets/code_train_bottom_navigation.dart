@@ -3,9 +3,14 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 class CodeTrainBottomNavigation extends StatefulWidget {
-  const CodeTrainBottomNavigation({super.key, this.bottomInset = 0});
+  const CodeTrainBottomNavigation({
+    super.key,
+    this.bottomInset = 0,
+    this.onTabSelected,
+  });
 
   final double bottomInset;
+  final ValueChanged<int>? onTabSelected;
 
   @override
   State<CodeTrainBottomNavigation> createState() =>
@@ -64,6 +69,7 @@ class _CodeTrainBottomNavigationState extends State<CodeTrainBottomNavigation>
       _previousSelectedIndex = _selectedIndex;
       _selectedIndex = nearestIndex;
     });
+    widget.onTabSelected?.call(nearestIndex);
     _animationController.forward(from: 0);
   }
 
