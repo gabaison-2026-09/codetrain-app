@@ -2,14 +2,57 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:codetrain_app/app/app.dart';
+import 'package:codetrain_app/features/home/data/mock_top_navigation_repository.dart';
 import 'package:codetrain_app/shared/widgets/code_train_bottom_navigation.dart';
+import 'package:codetrain_app/shared/widgets/code_train_top_navigation.dart';
 
 void main() {
+  testWidgets('top navigation shows level, progress, and hearts', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(const CodeTrainApp());
+
+    expect(find.byType(CodeTrainTopNavigation), findsOneWidget);
+    expect(find.text('Lv.12'), findsOneWidget);
+    expect(
+      find.byIcon(Icons.favorite),
+      findsNWidgets(MockTopNavigationRepository.mockStatus.heartCount),
+    );
+    expect(find.byIcon(Icons.favorite_border), findsNothing);
+
+    final heartIcons = tester
+        .widgetList<Icon>(
+          find.descendant(
+            of: find.byType(CodeTrainTopNavigation),
+            matching: find.byType(Icon),
+          ),
+        )
+        .toList();
+    final firstFilledHeartIndex =
+        MockTopNavigationRepository.mockStatus.heartCount -
+        MockTopNavigationRepository.mockStatus.filledHeartCount;
+    for (var index = 0; index < heartIcons.length; index++) {
+      expect(heartIcons[index].icon, Icons.favorite);
+      expect(
+        heartIcons[index].color,
+        index >= firstFilledHeartIndex
+            ? const Color(0xfff2b2b2)
+            : const Color(0xffd9d9d9),
+      );
+    }
+  });
+
   testWidgets('bottom navigation is rendered', (WidgetTester tester) async {
     await tester.pumpWidget(const CodeTrainApp());
 
     expect(find.byType(CodeTrainBottomNavigation), findsOneWidget);
-    expect(find.byType(CustomPaint), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byType(CodeTrainBottomNavigation),
+        matching: find.byType(CustomPaint),
+      ),
+      findsOneWidget,
+    );
   });
 
   testWidgets('profile selection animation can be completed', (
