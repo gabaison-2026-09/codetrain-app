@@ -5,16 +5,23 @@
 - ホーム画面の下部にボトムナビゲーションを表示する。
 - Calendar、Learn、Home、Task、Profile の5つのタブを表示する。
 - タップした位置に最も近いタブを選択し、選択状態の移動アニメーションを表示する。
+- 選択したタブに対応する画面へ切り替え、現在の画面が分かるタイトルを表示する。
+- 画面切り替え時は、260msのフェードと小さな横スライドで遷移する。逆方向の終了アニメーションは180msとする。
 - 端末の下部システム領域を考慮して表示領域を確保する。
 
 ## 構成
 
 - 共通 Widget: `lib/shared/widgets/code_train_bottom_navigation.dart`
-- 表示画面: `lib/features/home/presentation/home_page.dart`
+- ナビゲーションとタブ切り替え: `lib/features/home/presentation/home_page.dart`
+- Calendar画面: `lib/features/calendar/presentation/calendar_page.dart`
+- Learn画面: `lib/features/learn/presentation/learn_page.dart`
+- Home画面: `lib/features/home/presentation/home_tab_page.dart`
+- Task画面: `lib/features/task/presentation/task_page.dart`
+- Profile画面: `lib/features/profile/presentation/profile_page.dart`
 
 ## 実装状況
 
-既存のボトムナビゲーションの描画、タブ選択、アニメーションおよびレイアウト挙動を維持したまま、アプリ起動・画面・共通 Widget を責務ごとに分離している。
+既存のボトムナビゲーションの描画、タブ選択、アニメーションおよびレイアウト挙動を維持したまま、タブ選択通知を追加している。`HomePage` は通知を受けて `AnimatedSwitcher` で表示画面を切り替え、各タブは独立した Page Widget として実装している。
 
 ## アニメーション方針
 
@@ -29,3 +36,5 @@
 選択中タブの拡大に合わせて、未選択タブは選択中タブを境に左側が左へ、右側が右へ移動する。円がはじける前から、アイコン、ノード、ラベル、接続線を同じ進行値で新しいレイアウトへ補間し、円と線分の収縮を同期する。
 
 選択タブを切り替える場合は、直前の押し出し済みレイアウトを開始位置として、新しい選択状態のレイアウトへ直接補間する。
+
+画面本体の切り替えは、短いフェードに1.8%幅の横スライドを組み合わせる。表示開始は `easeOutCubic`、表示終了は `easeInCubic` とし、ナビゲーションバーの選択アニメーションを待たずに画面内容を切り替える。

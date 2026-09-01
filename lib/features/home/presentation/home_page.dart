@@ -1,9 +1,29 @@
 import 'package:flutter/material.dart';
 
 import '../../../shared/widgets/code_train_bottom_navigation.dart';
+import '../../calendar/presentation/calendar_page.dart';
+import '../../learn/presentation/learn_page.dart';
+import '../../profile/presentation/profile_page.dart';
+import '../../task/presentation/task_page.dart';
+import 'home_tab_page.dart';
 
-class HomePage extends StatelessWidget {
+class HomePage extends StatefulWidget {
   const HomePage({super.key});
+
+  @override
+  State<HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> {
+  static const _pages = <Widget>[
+    CalendarPage(),
+    LearnPage(),
+    HomeTabPage(),
+    TaskPage(),
+    ProfilePage(),
+  ];
+
+  int _selectedIndex = 2;
 
   @override
   Widget build(BuildContext context) {
@@ -11,7 +31,38 @@ class HomePage extends StatelessWidget {
       backgroundColor: const Color(0xfff5f6f7),
       body: Stack(
         children: [
-          const SizedBox.expand(),
+          AnimatedSwitcher(
+            duration: const Duration(milliseconds: 260),
+            reverseDuration: const Duration(milliseconds: 180),
+            switchInCurve: Curves.easeOutCubic,
+            switchOutCurve: Curves.easeInCubic,
+            layoutBuilder: (currentChild, previousChildren) {
+              return Stack(
+                fit: StackFit.expand,
+                children: [
+                  ...previousChildren,
+                  if (currentChild != null) currentChild,
+                ],
+              );
+            },
+            transitionBuilder: (child, animation) {
+              final slideAnimation = Tween<Offset>(
+                begin: const Offset(0.018, 0),
+                end: Offset.zero,
+              ).animate(animation);
+              return FadeTransition(
+                opacity: animation,
+                child: SlideTransition(
+                  position: slideAnimation,
+                  child: child,
+                ),
+              );
+            },
+            child: KeyedSubtree(
+              key: ValueKey(_selectedIndex),
+              child: _pages[_selectedIndex],
+            ),
+          ),
           Align(
             alignment: Alignment.bottomCenter,
             child: LayoutBuilder(
@@ -23,6 +74,11 @@ class HomePage extends StatelessWidget {
                   height: 325 * scale + systemBottomInset,
                   child: CodeTrainBottomNavigation(
                     bottomInset: systemBottomInset / scale,
+                    onTabSelected: (index) {
+                      setState(() {
+                        _selectedIndex = index;
+                      });
+                    },
                   ),
                 );
               },
