@@ -128,6 +128,20 @@ class _AnimatedBottomNavigationPainter extends _BottomNavigationPainter {
   static const _selectionJoinWidth = 14.0;
   static const _selectionJoinHandle = 14.0;
   static const _tabCenterXPositions = <double>[118, 302, 483, 668, 851];
+  static const _selectionBubbleColors = <Color>[
+    Color(0xffe3efff),
+    Color(0xfffff2cc),
+    Color(0xffe1f3e5),
+    Color(0xffeee5ff),
+    Color(0xffffe7dc),
+  ];
+  static const _selectionBubbleBorderColors = <Color>[
+    Color(0xffa9c8ef),
+    Color(0xffe3ca73),
+    Color(0xffa9d8b2),
+    Color(0xffc6b0eb),
+    Color(0xffedbaa0),
+  ];
   static const _selectionPushDistance = 34.0;
 
   @override
@@ -158,6 +172,12 @@ class _AnimatedBottomNavigationPainter extends _BottomNavigationPainter {
     final separationProgress = Curves.easeInOutCubic.transform(
       ((normalizedProgress - 0.70) / 0.30).clamp(0.0, 1.0),
     );
+    final selectionBubbleColor = isAttached
+        ? Colors.white
+        : _selectionBubbleColors[selectedIndex];
+    final selectionBubbleBorderColor = isAttached
+        ? _border
+        : _selectionBubbleBorderColors[selectedIndex];
     // Keep the circle, nodes, labels, and connection line on the same layout
     // progress so they contract together before the bubble separates.
     final layoutProgress = selectionPopProgress.clamp(0.0, 1.0).toDouble();
@@ -292,6 +312,8 @@ class _AnimatedBottomNavigationPainter extends _BottomNavigationPainter {
         selectionBubbleCenter,
         selectionBubbleRadius,
         attached: isAttached,
+        fillColor: selectionBubbleColor,
+        borderColor: selectionBubbleBorderColor,
       );
     }
 
@@ -373,15 +395,17 @@ class _AnimatedBottomNavigationPainter extends _BottomNavigationPainter {
     Offset center,
     double radius, {
     required bool attached,
+    required Color fillColor,
+    required Color borderColor,
   }) {
     if (radius <= 0) {
       return;
     }
     final outer = Paint()
-      ..color = Colors.white
+      ..color = fillColor
       ..style = PaintingStyle.fill;
     final outline = Paint()
-      ..color = _border
+      ..color = borderColor
       ..style = PaintingStyle.stroke
       ..strokeWidth = attached ? 2.2 : 5;
     canvas.drawCircle(center, radius, outer);
