@@ -59,8 +59,8 @@ class _HomePageState extends State<HomePage> {
                 return CodeTrainTopNavigation(
                   level: status.level,
                   progress: status.experienceProgress,
-                  filledHeartCount: status.filledHeartCount,
-                  heartCount: status.heartCount,
+                  filledHeartCount: status.hearts,
+                  heartCount: status.maxHearts,
                 );
               },
             ),

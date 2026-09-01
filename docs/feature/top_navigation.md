@@ -16,6 +16,8 @@
 - 表示データは `TopNavigationStatus` に集約し、Widget は表示用の値だけを受け取る。
 - `TopNavigationRepository` をデータ取得の境界とし、現在は `MockTopNavigationRepository` を使用する。
 - `HomePage` に Repository を注入できるため、バックエンド接続時は API 取得用の実装を渡す。
+- バックエンド接続時のデータ元は `GET /v1/me` の `progress`（`xp`、`level`、`hearts`）を使用する。
+- `experienceProgress` とハート上限は現 API 設計で未定義のため、DTO から表示モデルへ変換する境界で補助値として扱う。
 
 ## 構成
 
@@ -24,6 +26,7 @@
 - データモデル: `lib/features/home/domain/top_navigation_status.dart`
 - Repository: `lib/features/home/domain/top_navigation_repository.dart`
 - モック実装: `lib/features/home/data/mock_top_navigation_repository.dart`
+- API レスポンス DTO: `lib/features/home/data/me_response_dto.dart`
 
 ## 実装状況
 
