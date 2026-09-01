@@ -32,8 +32,7 @@ class CodeTrainTopNavigation extends StatelessWidget {
       padding: EdgeInsets.fromLTRB(10, topInset, 18, 0),
       decoration: BoxDecoration(
         color: Colors.white,
-        border: Border.all(color: _borderColor),
-        borderRadius: const BorderRadius.vertical(bottom: Radius.circular(6)),
+        border: const Border(bottom: BorderSide(color: _borderColor)),
       ),
       child: Row(
         children: [
