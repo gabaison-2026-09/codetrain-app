@@ -1,6 +1,8 @@
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 class CodeTrainBottomNavigation extends StatefulWidget {
   const CodeTrainBottomNavigation({
@@ -27,11 +29,13 @@ class _CodeTrainBottomNavigationState extends State<CodeTrainBottomNavigation>
     'Task',
     'Profile',
   ];
+  static const _selectionBurstProgress = 0.70;
 
   late final AnimationController _animationController;
   late final Animation<double> _animation;
   int _selectedIndex = 2;
   int _previousSelectedIndex = 2;
+  bool _hasTriggeredSelectionHaptic = false;
 
   @override
   void initState() {
@@ -45,6 +49,16 @@ class _CodeTrainBottomNavigationState extends State<CodeTrainBottomNavigation>
       curve: Curves.linear,
     );
     _animationController.value = 1;
+    _animationController.addListener(_handleAnimationProgress);
+  }
+
+  void _handleAnimationProgress() {
+    if (_hasTriggeredSelectionHaptic ||
+        _animationController.value < _selectionBurstProgress) {
+      return;
+    }
+    _hasTriggeredSelectionHaptic = true;
+    unawaited(HapticFeedback.lightImpact().catchError((_) {}));
   }
 
   void _handleTabTap(Offset localPosition) {
@@ -70,6 +84,7 @@ class _CodeTrainBottomNavigationState extends State<CodeTrainBottomNavigation>
       _selectedIndex = nearestIndex;
     });
     widget.onTabSelected?.call(nearestIndex);
+    _hasTriggeredSelectionHaptic = false;
     _animationController.forward(from: 0);
   }
 
@@ -100,6 +115,7 @@ class _CodeTrainBottomNavigationState extends State<CodeTrainBottomNavigation>
 
   @override
   void dispose() {
+    _animationController.removeListener(_handleAnimationProgress);
     _animationController.dispose();
     super.dispose();
   }
