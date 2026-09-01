@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
 
 import '../../../shared/widgets/code_train_bottom_navigation.dart';
+import '../../calendar/presentation/calendar_page.dart';
+import '../../learn/presentation/learn_page.dart';
+import '../../profile/presentation/profile_page.dart';
+import '../../task/presentation/task_page.dart';
+import 'home_tab_page.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -11,11 +16,11 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   static const _pages = <Widget>[
-    _NavigationPlaceholderPage(label: 'Calendar'),
-    _NavigationPlaceholderPage(label: 'Learn'),
-    _NavigationPlaceholderPage(label: 'Home'),
-    _NavigationPlaceholderPage(label: 'Task'),
-    _NavigationPlaceholderPage(label: 'Profile'),
+    CalendarPage(),
+    LearnPage(),
+    HomeTabPage(),
+    TaskPage(),
+    ProfilePage(),
   ];
 
   int _selectedIndex = 2;
@@ -77,37 +82,6 @@ class _HomePageState extends State<HomePage> {
                   ),
                 );
               },
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _NavigationPlaceholderPage extends StatelessWidget {
-  const _NavigationPlaceholderPage({required this.label});
-
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            label,
-            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-              fontWeight: FontWeight.w600,
-              color: Colors.black,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            '$label screen',
-            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-              color: Colors.black54,
             ),
           ),
         ],

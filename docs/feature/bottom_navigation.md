@@ -12,11 +12,16 @@
 ## 構成
 
 - 共通 Widget: `lib/shared/widgets/code_train_bottom_navigation.dart`
-- 表示画面とタブ切り替え: `lib/features/home/presentation/home_page.dart`
+- ナビゲーションとタブ切り替え: `lib/features/home/presentation/home_page.dart`
+- Calendar画面: `lib/features/calendar/presentation/calendar_page.dart`
+- Learn画面: `lib/features/learn/presentation/learn_page.dart`
+- Home画面: `lib/features/home/presentation/home_tab_page.dart`
+- Task画面: `lib/features/task/presentation/task_page.dart`
+- Profile画面: `lib/features/profile/presentation/profile_page.dart`
 
 ## 実装状況
 
-既存のボトムナビゲーションの描画、タブ選択、アニメーションおよびレイアウト挙動を維持したまま、タブ選択通知を追加している。`HomePage` は通知を受けて `IndexedStack` の表示画面を切り替え、各タブには遷移確認用の簡易画面を表示する。
+既存のボトムナビゲーションの描画、タブ選択、アニメーションおよびレイアウト挙動を維持したまま、タブ選択通知を追加している。`HomePage` は通知を受けて `AnimatedSwitcher` で表示画面を切り替え、各タブは独立した Page Widget として実装している。
 
 ## アニメーション方針
 
