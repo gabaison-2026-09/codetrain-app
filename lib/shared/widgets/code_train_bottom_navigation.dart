@@ -1,6 +1,8 @@
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 class CodeTrainBottomNavigation extends StatefulWidget {
   const CodeTrainBottomNavigation({
@@ -27,11 +29,13 @@ class _CodeTrainBottomNavigationState extends State<CodeTrainBottomNavigation>
     'Task',
     'Profile',
   ];
+  static const _selectionBurstProgress = 0.70;
 
   late final AnimationController _animationController;
   late final Animation<double> _animation;
   int _selectedIndex = 2;
   int _previousSelectedIndex = 2;
+  bool _hasTriggeredSelectionHaptic = false;
 
   @override
   void initState() {
@@ -45,6 +49,16 @@ class _CodeTrainBottomNavigationState extends State<CodeTrainBottomNavigation>
       curve: Curves.linear,
     );
     _animationController.value = 1;
+    _animationController.addListener(_handleAnimationProgress);
+  }
+
+  void _handleAnimationProgress() {
+    if (_hasTriggeredSelectionHaptic ||
+        _animationController.value < _selectionBurstProgress) {
+      return;
+    }
+    _hasTriggeredSelectionHaptic = true;
+    unawaited(HapticFeedback.lightImpact().catchError((_) {}));
   }
 
   void _handleTabTap(Offset localPosition) {
@@ -70,6 +84,7 @@ class _CodeTrainBottomNavigationState extends State<CodeTrainBottomNavigation>
       _selectedIndex = nearestIndex;
     });
     widget.onTabSelected?.call(nearestIndex);
+    _hasTriggeredSelectionHaptic = false;
     _animationController.forward(from: 0);
   }
 
@@ -100,6 +115,7 @@ class _CodeTrainBottomNavigationState extends State<CodeTrainBottomNavigation>
 
   @override
   void dispose() {
+    _animationController.removeListener(_handleAnimationProgress);
     _animationController.dispose();
     super.dispose();
   }
@@ -128,6 +144,20 @@ class _AnimatedBottomNavigationPainter extends _BottomNavigationPainter {
   static const _selectionJoinWidth = 14.0;
   static const _selectionJoinHandle = 14.0;
   static const _tabCenterXPositions = <double>[118, 302, 483, 668, 851];
+  static const _selectionBubbleColors = <Color>[
+    Color(0xffe3efff),
+    Color(0xfffff2cc),
+    Color(0xffe1f3e5),
+    Color(0xffeee5ff),
+    Color(0xffffe7dc),
+  ];
+  static const _selectionBubbleBorderColors = <Color>[
+    Color(0xffa9c8ef),
+    Color(0xffe3ca73),
+    Color(0xffa9d8b2),
+    Color(0xffc6b0eb),
+    Color(0xffedbaa0),
+  ];
   static const _selectionPushDistance = 34.0;
 
   @override
@@ -158,6 +188,12 @@ class _AnimatedBottomNavigationPainter extends _BottomNavigationPainter {
     final separationProgress = Curves.easeInOutCubic.transform(
       ((normalizedProgress - 0.70) / 0.30).clamp(0.0, 1.0),
     );
+    final selectionBubbleColor = isAttached
+        ? Colors.white
+        : _selectionBubbleColors[selectedIndex];
+    final selectionBubbleBorderColor = isAttached
+        ? _border
+        : _selectionBubbleBorderColors[selectedIndex];
     // Keep the circle, nodes, labels, and connection line on the same layout
     // progress so they contract together before the bubble separates.
     final layoutProgress = selectionPopProgress.clamp(0.0, 1.0).toDouble();
@@ -292,6 +328,8 @@ class _AnimatedBottomNavigationPainter extends _BottomNavigationPainter {
         selectionBubbleCenter,
         selectionBubbleRadius,
         attached: isAttached,
+        fillColor: selectionBubbleColor,
+        borderColor: selectionBubbleBorderColor,
       );
     }
 
@@ -373,15 +411,17 @@ class _AnimatedBottomNavigationPainter extends _BottomNavigationPainter {
     Offset center,
     double radius, {
     required bool attached,
+    required Color fillColor,
+    required Color borderColor,
   }) {
     if (radius <= 0) {
       return;
     }
     final outer = Paint()
-      ..color = Colors.white
+      ..color = fillColor
       ..style = PaintingStyle.fill;
     final outline = Paint()
-      ..color = _border
+      ..color = borderColor
       ..style = PaintingStyle.stroke
       ..strokeWidth = attached ? 2.2 : 5;
     canvas.drawCircle(center, radius, outer);
