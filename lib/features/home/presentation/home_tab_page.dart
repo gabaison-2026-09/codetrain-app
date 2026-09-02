@@ -46,16 +46,69 @@ class _HomeTabPageState extends State<HomeTabPage> {
   }
 }
 
-class _HomeDashboardView extends StatelessWidget {
+class _HomeDashboardView extends StatefulWidget {
   const _HomeDashboardView({required this.dashboard});
 
   final HomeDashboard dashboard;
 
+  @override
+  State<_HomeDashboardView> createState() => _HomeDashboardViewState();
+}
+
+class _HomeDashboardViewState extends State<_HomeDashboardView> {
+  var _selectedTaskIndex = 0;
+  var _swipeDirection = 1;
+
   static const _purple = Color(0xff6263d9);
   static const _orange = Color(0xffff6a2a);
+  static const _taskColors = [
+    _purple,
+    Color(0xff3f8f9d),
+    Color(0xff8c5aa8),
+  ];
+
+  HomeStudyTask get _selectedTask {
+    final tasks = widget.dashboard.studyTasks;
+    if (tasks.isEmpty) {
+      return const HomeStudyTask(languages: []);
+    }
+    final safeIndex = _selectedTaskIndex.clamp(0, tasks.length - 1).toInt();
+    return tasks[safeIndex];
+  }
+
+  Color get _selectedTaskColor =>
+      _taskColors[_selectedTaskIndex % _taskColors.length];
+
+  @override
+  void didUpdateWidget(covariant _HomeDashboardView oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final taskCount = widget.dashboard.studyTasks.length;
+    if (taskCount == 0) {
+      _selectedTaskIndex = 0;
+    } else if (_selectedTaskIndex >= taskCount) {
+      _selectedTaskIndex = taskCount - 1;
+    }
+  }
+
+  void _handleTaskSwipe(DragEndDetails details) {
+    final velocity = details.primaryVelocity;
+    final taskCount = widget.dashboard.studyTasks.length;
+    if (velocity == null || velocity.abs() < 100 || taskCount < 2) {
+      return;
+    }
+
+    final direction = velocity < 0 ? 1 : -1;
+    setState(() {
+      _swipeDirection = direction;
+      _selectedTaskIndex =
+          (_selectedTaskIndex + direction + taskCount) % taskCount;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
+    final dashboard = widget.dashboard;
+    final tasks = dashboard.studyTasks;
     return LayoutBuilder(
       builder: (context, constraints) {
         final horizontalPadding = (constraints.maxWidth * 0.024).clamp(
@@ -84,9 +137,68 @@ class _HomeDashboardView extends StatelessWidget {
                 highlightedDayIndex: dashboard.highlightedDayIndex,
               ),
               const SizedBox(height: 68),
-              const _PlayButton(),
-              const SizedBox(height: 17),
-              _ProgramRow(programs: dashboard.programs),
+              GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onHorizontalDragEnd: _handleTaskSwipe,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 420),
+                      switchInCurve: Curves.easeOutBack,
+                      switchOutCurve: Curves.easeInCubic,
+                      transitionBuilder: (child, animation) {
+                        final offset = Tween<Offset>(
+                          begin: Offset(_swipeDirection * 0.08, 0),
+                          end: Offset.zero,
+                        ).animate(animation);
+                        return FadeTransition(
+                          opacity: animation,
+                          child: SlideTransition(
+                            position: offset,
+                            child: child,
+                          ),
+                        );
+                      },
+                      child: _PlayButton(
+                        key: ValueKey('home-play-task-$_selectedTaskIndex'),
+                        color: _selectedTaskColor,
+                      ),
+                    ),
+                    if (tasks.length > 1) ...[
+                      const SizedBox(height: 7),
+                      _TaskIndicator(
+                        count: tasks.length,
+                        selectedIndex: _selectedTaskIndex,
+                        color: _selectedTaskColor,
+                      ),
+                    ],
+                    const SizedBox(height: 17),
+                    AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 360),
+                      switchInCurve: Curves.easeOutCubic,
+                      switchOutCurve: Curves.easeInCubic,
+                      transitionBuilder: (child, animation) {
+                        return FadeTransition(
+                          opacity: animation,
+                          child: ScaleTransition(
+                            scale: Tween<double>(begin: 0.92, end: 1).animate(
+                              animation,
+                            ),
+                            child: child,
+                          ),
+                        );
+                      },
+                      child: _ProgramRow(
+                        key: ValueKey(
+                          'home-programs-task-$_selectedTaskIndex',
+                        ),
+                        languages: _selectedTask.languages,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ],
           ),
         );
@@ -281,15 +393,69 @@ class _DayStatusDots extends StatelessWidget {
 }
 
 class _PlayButton extends StatefulWidget {
-  const _PlayButton();
+  const _PlayButton({super.key, required this.color});
+
+  final Color color;
 
   @override
   State<_PlayButton> createState() => _PlayButtonState();
 }
 
+class _TaskIndicator extends StatelessWidget {
+  const _TaskIndicator({
+    required this.count,
+    required this.selectedIndex,
+    required this.color,
+  });
+
+  final int count;
+  final int selectedIndex;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const _TaskIndicatorLine(),
+        const SizedBox(width: 12),
+        for (var index = 0; index < count; index++) ...[
+          if (index > 0) const SizedBox(width: 6),
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 260),
+            curve: Curves.easeOut,
+            width: index == selectedIndex ? 7 : 4,
+            height: index == selectedIndex ? 7 : 4,
+            decoration: BoxDecoration(
+              color: index == selectedIndex
+                  ? color
+                  : color.withValues(alpha: 0.28),
+              shape: BoxShape.circle,
+            ),
+          ),
+        ],
+        const SizedBox(width: 12),
+        const _TaskIndicatorLine(),
+      ],
+    );
+  }
+}
+
+class _TaskIndicatorLine extends StatelessWidget {
+  const _TaskIndicatorLine();
+
+  @override
+  Widget build(BuildContext context) {
+    return const SizedBox(
+      width: 96,
+      height: 1,
+      child: ColoredBox(color: Color(0xffe1e1e1)),
+    );
+  }
+}
+
 class _PlayButtonState extends State<_PlayButton>
     with SingleTickerProviderStateMixin {
-  static const _purple = Color(0xff6263d9);
   late final AnimationController _rotationController;
 
   @override
@@ -309,12 +475,13 @@ class _PlayButtonState extends State<_PlayButton>
 
   @override
   Widget build(BuildContext context) {
+    final color = widget.color;
     return Center(
       child: SizedBox.square(
         dimension: 278,
         child: AnimatedBuilder(
           animation: _rotationController,
-          child: const Center(
+          child: Center(
             child: SizedBox.square(
               dimension: 254,
               child: DecoratedBox(
@@ -322,13 +489,13 @@ class _PlayButtonState extends State<_PlayButton>
                   color: Colors.white,
                   shape: BoxShape.circle,
                   border: Border.fromBorderSide(
-                    BorderSide(color: _purple, width: 9),
+                    BorderSide(color: color, width: 9),
                   ),
                 ),
                 child: Center(
                   child: Icon(
                     Icons.play_arrow_rounded,
-                    color: _purple,
+                    color: color,
                     size: 210,
                   ),
                 ),
@@ -339,6 +506,7 @@ class _PlayButtonState extends State<_PlayButton>
             return CustomPaint(
               painter: _PlayButtonDecorationPainter(
                 rotation: _rotationController.value * math.pi * 2,
+                color: color,
               ),
               child: child,
             );
@@ -350,16 +518,20 @@ class _PlayButtonState extends State<_PlayButton>
 }
 
 class _PlayButtonDecorationPainter extends CustomPainter {
-  const _PlayButtonDecorationPainter({required this.rotation});
+  const _PlayButtonDecorationPainter({
+    required this.rotation,
+    required this.color,
+  });
 
   final double rotation;
+  final Color color;
 
   @override
   void paint(Canvas canvas, Size size) {
     final center = size.center(Offset.zero);
     final radius = size.shortestSide / 2 - 4;
     final purple = Paint()
-      ..color = const Color(0xff6263d9).withValues(alpha: 0.2)
+      ..color = color.withValues(alpha: 0.2)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1.5;
 
@@ -386,13 +558,13 @@ class _PlayButtonDecorationPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _PlayButtonDecorationPainter oldDelegate) =>
-      oldDelegate.rotation != rotation;
+      oldDelegate.rotation != rotation || oldDelegate.color != color;
 }
 
 class _ProgramRow extends StatelessWidget {
-  const _ProgramRow({required this.programs});
+  const _ProgramRow({super.key, required this.languages});
 
-  final List<HomeProgram> programs;
+  final List<HomeLanguage> languages;
 
   @override
   Widget build(BuildContext context) {
@@ -401,8 +573,9 @@ class _ProgramRow extends StatelessWidget {
       spacing: 23,
       runSpacing: 12,
       children: [
-        for (final program in programs) ...[_ProgramIcon(program: program)],
-        const _AddProgramButton(),
+        for (final language in languages) ...[
+          _ProgramIcon(language: language),
+        ],
         const _AddProgramButton(),
       ],
     );
@@ -410,18 +583,18 @@ class _ProgramRow extends StatelessWidget {
 }
 
 class _ProgramIcon extends StatelessWidget {
-  const _ProgramIcon({required this.program});
+  const _ProgramIcon({required this.language});
 
-  final HomeProgram program;
+  final HomeLanguage language;
 
   @override
   Widget build(BuildContext context) {
-    switch (program) {
-      case HomeProgram.csharp:
+    switch (language) {
+      case HomeLanguage.csharp:
         return const _CSharpIcon();
-      case HomeProgram.typescript:
+      case HomeLanguage.typescript:
         return const _TypeScriptIcon();
-      case HomeProgram.ruby:
+      case HomeLanguage.ruby:
         return const _RubyIcon();
     }
   }

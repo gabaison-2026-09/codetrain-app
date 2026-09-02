@@ -18,10 +18,20 @@ class MockHomeDashboardRepository implements HomeDashboardRepository {
         HomeDayStatus.upcoming,
       ],
       highlightedDayIndex: 3,
-      programs: const [
-        HomeProgram.csharp,
-        HomeProgram.typescript,
-        HomeProgram.ruby,
+      studyTasks: const [
+        HomeStudyTask(
+          languages: [
+            HomeLanguage.csharp,
+            HomeLanguage.typescript,
+            HomeLanguage.ruby,
+          ],
+        ),
+        HomeStudyTask(
+          languages: [HomeLanguage.typescript, HomeLanguage.ruby],
+        ),
+        HomeStudyTask(
+          languages: [HomeLanguage.csharp],
+        ),
       ],
     );
   }

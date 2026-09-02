@@ -74,7 +74,7 @@
 
 | 種別 | エンドポイント | 概略 | 認証是非 |
 | --- | --- | --- | --- |
-| GET | `/v1/home` | ホーム画面固有のデータを一括取得する（初回アクセス時に当日分を割当）。全画面共通の進捗は `/v1/me` で取得する | 必須 |
+| GET | `/v1/home` | 今日のタスク一覧を取得する（初回アクセス時に当日分を割当） | 必須 |
 
 ### カレンダー画面
 
@@ -98,7 +98,7 @@
 
 ### GET /v1/me
 
-**概略**: 自分のプロフィールと、全画面で共有する進捗を取得する（実装済み）。アプリ起動時に取得し、トップナビゲーションなどの共通Widgetから参照する。
+**概略**: 自分のプロフィールと進捗を取得する（実装済み）。
 **認証是非**: 必須
 
 **レスポンスボディ** `200 OK`
@@ -117,14 +117,10 @@
     "streak_days": 5,
     "last_studied_on": "2026-09-01",
     "hearts": 4,
-    "max_hearts": 5,
-    "experience_progress": 0.62,
     "current_skill_node_id": "uuid"
   }
 }
 ```
-- `progress` は全画面共通の正規データとする。クライアントは同じレスポンスをメモリ上で共有し、各画面で `/v1/me` を重複取得しない。
-- `experience_progress` は現在レベル内の経験値進捗を `0.0`〜`1.0` で表す。`max_hearts` はハート上限を表す。
 
 **エラー**: `USER_NOT_FOUND`（404。未プロビジョニングのユーザー。クライアントは `POST /v1/me` を呼ぶ）
 
@@ -340,8 +336,6 @@
     "streak_days": 5,
     "last_studied_on": "2026-09-02",
     "hearts": 4,
-    "max_hearts": 5,
-    "experience_progress": 0.67,
     "current_skill_node_id": "uuid"
   },
   "daily_task_completed": {
@@ -456,7 +450,7 @@
 
 ### GET /v1/home
 
-**概略**: ホーム画面固有のデータを一括取得する。初回アクセス時、当日分の `daily_task` 行が無ければサーバが冪等に割り当てる（`ON CONFLICT (user_id, activity_date, slot_no) DO NOTHING`。[DB_SCHEMA.md](DB_SCHEMA.md) §7 ステップ2）。全画面共通の `progress` はこのレスポンスに含めず、`GET /v1/me` を正規データとする。
+**概略**: ホーム画面の「今日のタスク」を取得する。初回アクセス時、当日分の `daily_task` 行が無ければサーバが冪等に割り当てる（`ON CONFLICT (user_id, activity_date, slot_no) DO NOTHING`。[DB_SCHEMA.md](DB_SCHEMA.md) §7 ステップ2）。
 **認証是非**: 必須
 
 **レスポンスボディ** `200 OK`
@@ -488,9 +482,15 @@
     {"date": "2026-09-04", "status": "upcoming"},
     {"date": "2026-09-05", "status": "upcoming"}
   ],
-  "programs": [
-    {"slot_no": 1, "language": "typescript"},
-    {"slot_no": 2, "language": "ruby"}
+  "study_tasks": [
+    {
+      "task_no": 1,
+      "languages": ["csharp", "typescript", "ruby"]
+    },
+    {
+      "task_no": 2,
+      "languages": ["typescript"]
+    }
   ],
   "review": {
     "due_count": 12
@@ -500,7 +500,8 @@
 - `tasks` の要素数 = そのユーザーの `user_task` 設定スロット数（0〜5）。未設定なら空配列
 - 各タスクの `question` は割り当てられた問題のプレビュー（回答は `POST /v1/questions/{id}/attempts` で行う）
 - `weekly_activity` は `activity_date` の前後3日を含む7要素を日付順で返す。`status` は `completed`（学習済み）、`missed`（未学習）、`active`（当日）、`upcoming`（未来）に限定する。
-- `programs` は設定済みタスクスロットの一覧を `slot_no` 順で返す。追加可能な空き枠はクライアントが表示する。
+- `tasks` は個別の問題割当、`study_tasks` はホーム画面で切り替える学習タスク（その日に学習する言語のまとまり）を表す。`study_tasks` は `task_no` 順で返し、各タスクの `languages` をそのまま一つの言語アイコン列として表示する。
+- `study_tasks` の各要素は、タスク切り替え時に言語一覧をまとめて切り替えるための表示単位である。言語の追加枠はクライアントが表示する。
 - `review.due_count` は `/v1/srs/due` で取得できる復習期限到来問題の件数とする。復習画面では必要に応じて `/v1/srs/due` を呼び出す。
 
 **エラー**: `NO_AVAILABLE_QUESTION`（422。あるスロットの条件に合う未回答 `published` 問題が枯渇。フォールバック方針は [OPEN_ISSUES.md](OPEN_ISSUES.md) B-10 未確定のため、該当スロットを欠番として返す挙動も許容し実装時に確定する）

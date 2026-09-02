@@ -104,6 +104,32 @@ void main() {
     expect(find.text('TS'), findsOneWidget);
   });
 
+  testWidgets('swiping the play area switches the whole study task', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: HomePage(
+          topNavigationRepository: const MockTopNavigationRepository(),
+          homeRepository: _FakeHomeDashboardRepository(),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('home-programs-task-0')), findsOneWidget);
+    expect(find.text('TS'), findsOneWidget);
+
+    await tester.drag(
+      find.byIcon(Icons.play_arrow_rounded),
+      const Offset(-160, 0),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('home-programs-task-1')), findsOneWidget);
+    expect(find.text('TS'), findsNothing);
+  });
+
   testWidgets('profile selection animation can be completed', (
     WidgetTester tester,
   ) async {
@@ -167,7 +193,10 @@ class _FakeHomeDashboardRepository implements HomeDashboardRepository {
       activityDate: DateTime(2026, 8, 5),
       streakDays: 7,
       dayStatuses: const [HomeDayStatus.completed],
-      programs: const [HomeProgram.typescript],
+      studyTasks: const [
+        HomeStudyTask(languages: [HomeLanguage.typescript]),
+        HomeStudyTask(languages: [HomeLanguage.csharp, HomeLanguage.ruby]),
+      ],
     );
   }
 }
