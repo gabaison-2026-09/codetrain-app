@@ -533,6 +533,8 @@ class _FilterBar extends StatelessWidget {
               key: ValueKey('friend-filter-${item.$1.name}'),
               onTap: () => onSelected(item.$1),
               child: Container(
+                height: 48,
+                alignment: Alignment.bottomCenter,
                 padding: const EdgeInsets.only(bottom: 13),
                 decoration: BoxDecoration(
                   border: Border(
