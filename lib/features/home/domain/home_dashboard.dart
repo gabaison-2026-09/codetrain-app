@@ -8,12 +8,20 @@ class HomeStudyTask {
   final List<HomeLanguage> languages;
 }
 
+class HomeXpPoint {
+  const HomeXpPoint({required this.date, required this.xp});
+
+  final DateTime date;
+  final int xp;
+}
+
 class HomeDashboard {
   const HomeDashboard({
     required this.activityDate,
     required this.streakDays,
     required this.dayStatuses,
     required this.studyTasks,
+    required this.recentXp,
     this.highlightedDayIndex = 3,
   });
 
@@ -21,5 +29,6 @@ class HomeDashboard {
   final int streakDays;
   final List<HomeDayStatus> dayStatuses;
   final List<HomeStudyTask> studyTasks;
+  final List<HomeXpPoint> recentXp;
   final int highlightedDayIndex;
 }

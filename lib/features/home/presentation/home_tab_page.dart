@@ -61,11 +61,7 @@ class _HomeDashboardViewState extends State<_HomeDashboardView> {
 
   static const _purple = Color(0xff6263d9);
   static const _orange = Color(0xffff6a2a);
-  static const _taskColors = [
-    _purple,
-    Color(0xff3f8f9d),
-    Color(0xff8c5aa8),
-  ];
+  static const _taskColors = [_purple, Color(0xff3f8f9d), Color(0xff8c5aa8)];
 
   HomeStudyTask get _selectedTask {
     final tasks = widget.dashboard.studyTasks;
@@ -136,7 +132,7 @@ class _HomeDashboardViewState extends State<_HomeDashboardView> {
                 statuses: dashboard.dayStatuses,
                 highlightedDayIndex: dashboard.highlightedDayIndex,
               ),
-              const SizedBox(height: 68),
+              const SizedBox(height: 30),
               GestureDetector(
                 behavior: HitTestBehavior.opaque,
                 onHorizontalDragEnd: _handleTaskSwipe,
@@ -182,29 +178,140 @@ class _HomeDashboardViewState extends State<_HomeDashboardView> {
                         return FadeTransition(
                           opacity: animation,
                           child: ScaleTransition(
-                            scale: Tween<double>(begin: 0.92, end: 1).animate(
-                              animation,
-                            ),
+                            scale: Tween<double>(
+                              begin: 0.92,
+                              end: 1,
+                            ).animate(animation),
                             child: child,
                           ),
                         );
                       },
                       child: _ProgramRow(
-                        key: ValueKey(
-                          'home-programs-task-$_selectedTaskIndex',
-                        ),
+                        key: ValueKey('home-programs-task-$_selectedTaskIndex'),
                         languages: _selectedTask.languages,
                       ),
                     ),
                   ],
                 ),
               ),
+              const SizedBox(height: 42),
+              _RecentXpCard(points: dashboard.recentXp),
             ],
           ),
         );
       },
     );
   }
+}
+
+class _RecentXpCard extends StatelessWidget {
+  const _RecentXpCard({required this.points});
+
+  final List<HomeXpPoint> points;
+
+  @override
+  Widget build(BuildContext context) {
+    if (points.isEmpty) return const SizedBox.shrink();
+    final totalXp = points.fold<int>(
+      0,
+      (total, point) => total + point.xp,
+    );
+
+    return Card(
+      key: const ValueKey('recent-xp-card'),
+      margin: const EdgeInsets.symmetric(horizontal: 24),
+      color: Colors.white,
+      surfaceTintColor: Colors.transparent,
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: const BorderSide(color: Color(0xffe8e8ed)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(14, 12, 16, 12),
+        child: Row(
+          children: [
+            Expanded(
+              child: SizedBox(
+                height: 40,
+                child: CustomPaint(
+                  painter: _RecentXpChartPainter(points: points),
+                ),
+              ),
+            ),
+            const SizedBox(width: 18),
+            Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                const Text(
+                  'total',
+                  style: TextStyle(
+                    color: Color(0xff9b9ba4),
+                    fontSize: 10,
+                    fontWeight: FontWeight.w500,
+                    letterSpacing: 0.8,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  '$totalXp',
+                  style: const TextStyle(
+                    fontFamily: 'Russo One',
+                    fontSize: 18,
+                    fontWeight: FontWeight.w400,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _RecentXpChartPainter extends CustomPainter {
+  const _RecentXpChartPainter({required this.points});
+
+  final List<HomeXpPoint> points;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (points.isEmpty || size.width <= 0 || size.height <= 0) return;
+
+    final maxXp = points.fold<int>(
+      1,
+      (maximum, point) => point.xp > maximum ? point.xp : maximum,
+    );
+    final gap = points.length > 14 ? 3.5 : (points.length > 1 ? 7.0 : 0.0);
+    final barWidth = ((size.width - gap * (points.length - 1)) / points.length)
+        .clamp(3.0, 9.0)
+        .toDouble();
+    final chartHeight = size.height - 3;
+    final barPaint = Paint()..style = PaintingStyle.fill;
+
+    for (var index = 0; index < points.length; index++) {
+      final value = points[index].xp.clamp(0, maxXp);
+      final barHeight = value == 0
+          ? 4.0
+          : (chartHeight * value / maxXp).clamp(6.0, chartHeight).toDouble();
+      final left = index * (barWidth + gap);
+      final top = chartHeight - barHeight;
+      barPaint.color = const Color(0xff6263d9);
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(
+          Rect.fromLTWH(left, top, barWidth, barHeight),
+          Radius.circular(barWidth / 2),
+        ),
+        barPaint,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _RecentXpChartPainter oldDelegate) =>
+      oldDelegate.points != points;
 }
 
 class _DateAndStreakRow extends StatelessWidget {
@@ -574,9 +681,7 @@ class _ProgramRow extends StatelessWidget {
       spacing: 23,
       runSpacing: 12,
       children: [
-        for (final language in languages) ...[
-          _ProgramIcon(language: language),
-        ],
+        for (final language in languages) ...[_ProgramIcon(language: language)],
         const _AddProgramButton(),
       ],
     );

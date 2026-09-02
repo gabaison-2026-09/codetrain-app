@@ -33,6 +33,15 @@ class MockHomeDashboardRepository implements HomeDashboardRepository {
           languages: [HomeLanguage.csharp],
         ),
       ],
+      recentXp: List.generate(
+        30,
+        (index) => HomeXpPoint(
+          date: DateTime(now.year, now.month, now.day).subtract(
+            Duration(days: 29 - index),
+          ),
+          xp: const [4, 8, 0, 11, 7, 12, 9, 6, 10, 3][index % 10],
+        ),
+      ),
     );
   }
 

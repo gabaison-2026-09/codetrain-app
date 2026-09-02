@@ -6,7 +6,7 @@
 | --- | --- | --- | --- |
 | ボトムナビゲーション | [`bottom_navigation.md`](bottom_navigation.md) | ホーム画面下部に Calendar、Learn、Home、Task、Profile の5つのタブを表示し、選択状態に応じて対応する画面へ切り替える。選択中の拡大円は分離前は白、分離後はタブごとの淡い色と同系色の輪郭線で表示し、分離時に触覚フィードバックを発生させる。 | `lib/shared/widgets/code_train_bottom_navigation.dart`、`lib/features/*/presentation/*_page.dart` |
 | トップナビゲーション | [`top_navigation.md`](top_navigation.md) | ホーム画面上部にプロフィール、レベル、経験値進捗、ハートを表示する。 | `lib/shared/widgets/code_train_top_navigation.dart`、`lib/features/home/presentation/home_page.dart`、`lib/features/home/data/`、`lib/features/home/domain/` |
-| ホームダッシュボード | [`home_dashboard.md`](home_dashboard.md) | 日付、連続学習日数、学習状況、学習タスク切り替え用の再生ボタン、選択タスクの言語アイコンを表示する。 | `lib/features/home/presentation/home_tab_page.dart`、`lib/features/home/data/`、`lib/features/home/domain/` |
+| ホームダッシュボード | [`home_dashboard.md`](home_dashboard.md) | 日付、連続学習日数、学習状況、学習タスク切り替え用の再生ボタン、選択タスクの言語アイコン、直近30日分のXP推移を表示する。 | `lib/features/home/presentation/home_tab_page.dart`、`lib/features/home/data/`、`lib/features/home/domain/` |
 
 ## 更新ルール
 
