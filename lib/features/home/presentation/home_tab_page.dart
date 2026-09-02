@@ -113,13 +113,18 @@ class _HomeDashboardViewState extends State<_HomeDashboardView> {
           7.0,
           16.0,
         );
-        final topNavigationHeight = 64.0 + MediaQuery.paddingOf(context).top;
+        final mediaPadding = MediaQuery.paddingOf(context);
+        final topNavigationHeight = 64.0 + mediaPadding.top;
+        final bottomNavigationScale =
+            (constraints.maxWidth / 973).clamp(0.32, 1.0).toDouble();
+        final bottomNavigationHeight =
+            325 * bottomNavigationScale + mediaPadding.bottom;
         return SingleChildScrollView(
           padding: EdgeInsets.fromLTRB(
             horizontalPadding,
             topNavigationHeight + 20,
             horizontalPadding,
-            330,
+            bottomNavigationHeight + 12,
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
