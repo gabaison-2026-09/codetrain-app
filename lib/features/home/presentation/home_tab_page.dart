@@ -309,7 +309,8 @@ class _DateAndStreakRow extends StatelessWidget {
                     const TextSpan(
                       text: ' days',
                       style: TextStyle(
-                        fontSize: 24,
+                        fontFamily: 'Russo One',
+                        fontSize: 22,
                         fontWeight: FontWeight.w400,
                       ),
                     ),
