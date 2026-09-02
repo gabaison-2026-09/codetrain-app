@@ -298,7 +298,7 @@ class _SelectionDropdown extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return DropdownButtonFormField<String>(
-      value: value,
+      initialValue: value,
       isExpanded: true,
       icon: const Icon(Icons.unfold_more_rounded, size: 19),
       style: const TextStyle(

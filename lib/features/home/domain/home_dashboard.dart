@@ -1,8 +1,16 @@
 enum HomeLanguage { csharp, typescript, ruby }
 
 class HomeStudyTask {
-  const HomeStudyTask({required this.languages});
+  const HomeStudyTask({
+    this.id = '',
+    this.name = '',
+    this.taskNo,
+    required this.languages,
+  });
 
+  final String id;
+  final String name;
+  final int? taskNo;
   final List<HomeLanguage> languages;
 }
 

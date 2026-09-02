@@ -9,6 +9,9 @@ import 'package:codetrain_app/features/home/data/mock_top_navigation_repository.
 import 'package:codetrain_app/features/home/presentation/home_page.dart';
 import 'package:codetrain_app/features/learn/data/learn_response_dto.dart';
 import 'package:codetrain_app/features/learn/data/mock_learn_repository.dart';
+import 'package:codetrain_app/features/task/data/mock_task_repository.dart';
+import 'package:codetrain_app/features/task/data/mock_task_launcher.dart';
+import 'package:codetrain_app/features/task/data/task_slots_response_dto.dart';
 import 'package:codetrain_app/shared/widgets/code_train_bottom_navigation.dart';
 import 'package:codetrain_app/shared/widgets/code_train_top_navigation.dart';
 
@@ -93,7 +96,9 @@ void main() {
         home: HomePage(
           topNavigationRepository: const MockTopNavigationRepository(),
           homeRepository: _FakeHomeDashboardRepository(),
+          taskLauncher: const MockTaskLauncher(),
           learnRepository: const MockLearnRepository(),
+          taskRepository: MockTaskRepository(),
         ),
       ),
     );
@@ -108,6 +113,9 @@ void main() {
     expect(find.text('連続日数'), findsOneWidget);
     expect(find.byIcon(Icons.play_arrow_rounded), findsOneWidget);
     expect(find.text('TS'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('home-play-task-0')));
+    await tester.pump();
+    expect(find.text('TypeScript 基礎 を開始します。'), findsOneWidget);
     expect(find.text('今月の勉強量'), findsOneWidget);
   });
 
@@ -123,7 +131,9 @@ void main() {
         home: HomePage(
           topNavigationRepository: const MockTopNavigationRepository(),
           homeRepository: _FakeHomeDashboardRepository(),
+          taskLauncher: const MockTaskLauncher(),
           learnRepository: const MockLearnRepository(),
+          taskRepository: MockTaskRepository(),
         ),
       ),
     );
@@ -197,11 +207,127 @@ void main() {
       } else if (tab.index == 1) {
         expect(find.text('何を学習する？'), findsOneWidget);
         expect(find.text('Learn screen'), findsNothing);
+      } else if (tab.index == 3) {
+        expect(find.text('タスク'), findsOneWidget);
+        expect(find.byKey(const ValueKey('task-search-field')), findsNothing);
+        expect(find.text('すべて'), findsNothing);
+        expect(find.text('コード読解'), findsNothing);
+        expect(find.text('出力予測'), findsNothing);
       } else {
         expect(find.text(tab.label), findsOneWidget);
         expect(find.text('${tab.label} screen'), findsOneWidget);
       }
     }
+  });
+
+  test('task slot DTO maps API fields to the domain model', () {
+    final slot = TaskSlotDto.fromJson({
+      'slot_no': 2,
+      'question_type': 'output_prediction',
+      'language': '',
+      'difficulty': 3,
+    }).toDomain();
+
+    expect(slot.slotNo, 2);
+    expect(slot.questionType!.label, '出力予測');
+    expect(slot.language, isEmpty);
+    expect(slot.difficulty, 3);
+
+    final task = LearningTaskDto.fromJson({
+      'id': 'task-1',
+      'name': 'ホーム用タスク',
+      'is_home_task': true,
+      'slots': [
+        {
+          'slot_no': 1,
+          'question_type': 'code_reading',
+          'language': 'typescript',
+          'difficulty': 1,
+        },
+      ],
+    }).toDomain();
+    expect(task.isHomeTask, isTrue);
+  });
+
+  test('updating a task keeps its position in the catalog', () async {
+    final repository = MockTaskRepository();
+    final initial = await repository.fetchCatalog();
+    final task = initial.tasks[1];
+
+    await repository.saveTask(task.copyWith(isHomeTask: !task.isHomeTask));
+    final updated = await repository.fetchCatalog();
+
+    expect(
+      updated.tasks.map((task) => task.id),
+      equals(initial.tasks.map((task) => task.id)),
+    );
+  });
+
+  testWidgets('task screen shows tasks and opens the creation modal', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(const CodeTrainApp());
+    final navigation = find.byType(CodeTrainBottomNavigation);
+    final navigationRect = tester.getRect(navigation);
+    await tester.tapAt(
+      Offset(
+        navigationRect.left + navigationRect.width * 668 / 973,
+        navigationRect.center.dy,
+      ),
+    );
+    await tester.pump(const Duration(milliseconds: 600));
+
+    expect(
+      find.byKey(const ValueKey('task-task-typescript-basics')),
+      findsOneWidget,
+    );
+    expect(find.byKey(const ValueKey('task-task-ruby-reading')), findsOneWidget);
+    expect(find.text('ホームで開始するタスク  3 / 3'), findsOneWidget);
+    expect(find.byKey(const ValueKey('task-task-csharp-basics')), findsOneWidget);
+    expect(find.byKey(const ValueKey('task-task-ruby-advanced')), findsOneWidget);
+
+    await tester.tap(
+      find.byKey(const ValueKey('task-home-toggle-task-ruby-advanced')),
+    );
+    await tester.pump();
+    expect(find.text('ホームで開始できるタスクは3つまでです。'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byKey(
+          const ValueKey('task-home-toggle-task-ruby-advanced'),
+        ),
+        matching: find.byIcon(Icons.add_circle_outline_rounded),
+      ),
+      findsOneWidget,
+    );
+
+    await tester.tap(
+      find.byKey(const ValueKey('task-start-button-task-typescript-basics')),
+    );
+    await tester.pump();
+    expect(find.text('TypeScript 基礎 を開始します。'), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('task-task-typescript-basics')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('タスクを編集'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('task-editor-typescript-basics')),
+      findsOneWidget,
+    );
+    expect(find.byType(ModalBarrier), findsNothing);
+
+    await tester.tap(find.byKey(const ValueKey('task-task-typescript-basics')));
+    await tester.pumpAndSettle();
+    expect(find.text('タスクを編集'), findsNothing);
+
+    await tester.tap(find.byKey(const ValueKey('task-add-button')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('タスクを作成'), findsOneWidget);
+    expect(find.byKey(const ValueKey('task-editor-slot-1')), findsOneWidget);
+    expect(find.byKey(const ValueKey('task-editor-slot-5')), findsOneWidget);
+    expect(find.byKey(const ValueKey('task-save-button')), findsOneWidget);
   });
 
   test('learning API DTOs map to domain models', () {
