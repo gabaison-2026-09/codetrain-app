@@ -399,39 +399,49 @@ class _DateAndStreakRow extends StatelessWidget {
         const SizedBox(width: 10),
         Padding(
           padding: const EdgeInsets.only(top: 6, right: 9),
-          child: Row(
+          child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              Icon(
-                Icons.local_fire_department_outlined,
-                color: orange,
-                size: 38,
-              ),
-              const SizedBox(width: 8),
-              Text.rich(
-                TextSpan(
-                  children: [
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Icon(
+                    Icons.local_fire_department_outlined,
+                    color: orange,
+                    size: 38,
+                  ),
+                  const SizedBox(width: 8),
+                  Text.rich(
                     TextSpan(
-                      text: '${dashboard.streakDays}',
-                      style: const TextStyle(
-                        fontFamily: 'Jua',
-                        fontSize: 34,
-                        fontWeight: FontWeight.w400,
-                      ),
+                      children: [
+                        TextSpan(
+                          text: '${dashboard.streakDays}',
+                          style: const TextStyle(
+                            fontFamily: 'Jua',
+                            fontSize: 34,
+                            fontWeight: FontWeight.w400,
+                          ),
+                        ),
+                        const TextSpan(
+                          text: ' days',
+                          style: TextStyle(
+                            fontFamily: 'Russo One',
+                            fontSize: 22,
+                            fontWeight: FontWeight.w400,
+                          ),
+                        ),
+                      ],
                     ),
-                    const TextSpan(
-                      text: ' days',
-                      style: TextStyle(
-                        fontFamily: 'Russo One',
-                        fontSize: 22,
-                        fontWeight: FontWeight.w400,
-                      ),
-                    ),
-                  ],
-                ),
-                style: const TextStyle(color: Colors.black, height: 1),
-                maxLines: 1,
+                    style: const TextStyle(color: Colors.black, height: 1),
+                    maxLines: 1,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 7),
+              _MonthlyStudyProgress(
+                progress: dashboard.monthlyProgress,
               ),
             ],
           ),
@@ -439,6 +449,132 @@ class _DateAndStreakRow extends StatelessWidget {
       ],
     );
   }
+}
+
+class _MonthlyStudyProgress extends StatelessWidget {
+  const _MonthlyStudyProgress({required this.progress});
+
+  final HomeMonthlyProgress progress;
+
+  @override
+  Widget build(BuildContext context) {
+    final maxDays = progress.maxDays.clamp(1, 30).toInt();
+    final studiedDays = progress.studiedDays.clamp(0, maxDays).toInt();
+    final percentage = (studiedDays / maxDays * 100).round();
+
+    return SizedBox(
+      width: 145,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                'MONTHLY',
+                style: TextStyle(
+                  color: Color(0xff9b9ba4),
+                  fontSize: 9,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 0.8,
+                ),
+              ),
+              const SizedBox(width: 7),
+              Text(
+                '$studiedDays / $maxDays  $percentage%',
+                style: const TextStyle(
+                  color: Color(0xff60606a),
+                  fontSize: 10,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 3),
+          SizedBox(
+            width: 145,
+            height: 22,
+            child: CustomPaint(
+              painter: _MonthlyStudyProgressPainter(
+                studiedDays: studiedDays,
+                maxDays: maxDays,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MonthlyStudyProgressPainter extends CustomPainter {
+  const _MonthlyStudyProgressPainter({
+    required this.studiedDays,
+    required this.maxDays,
+  });
+
+  final int studiedDays;
+  final int maxDays;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final trackHeight = 5.0;
+    final trackTop = 1.0;
+    final trackRect = RRect.fromRectAndRadius(
+      Rect.fromLTWH(0, trackTop, size.width, trackHeight),
+      const Radius.circular(3),
+    );
+    canvas.drawRRect(
+      trackRect,
+      Paint()..color = const Color(0xffe8e8f0),
+    );
+
+    final progressWidth =
+        size.width * studiedDays / maxDays.clamp(1, 30).toDouble();
+    if (progressWidth > 0) {
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(
+          Rect.fromLTWH(0, trackTop, progressWidth, trackHeight),
+          const Radius.circular(3),
+        ),
+        Paint()..color = const Color(0xff6263d9),
+      );
+    }
+
+    final tickPaint = Paint()
+      ..color = const Color(0xffb9b9c6)
+      ..strokeWidth = 1;
+    final milestones = <int>[];
+    for (var milestone = 10; milestone < maxDays; milestone += 10) {
+      milestones.add(milestone);
+    }
+    milestones.add(maxDays);
+
+    for (final milestone in milestones) {
+      final x = size.width * milestone / maxDays;
+      canvas.drawLine(Offset(x, 0), Offset(x, 8), tickPaint);
+
+      final label = TextPainter(
+        text: TextSpan(
+          text: '$milestone',
+          style: const TextStyle(
+            color: Color(0xffa2a2ad),
+            fontSize: 8,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        textDirection: TextDirection.ltr,
+      )..layout();
+      final labelLeft =
+          (x - label.width / 2).clamp(0.0, size.width - label.width).toDouble();
+      label.paint(canvas, Offset(labelLeft, 11));
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _MonthlyStudyProgressPainter oldDelegate) =>
+      oldDelegate.studiedDays != studiedDays || oldDelegate.maxDays != maxDays;
 }
 
 class _DayStatusDots extends StatelessWidget {

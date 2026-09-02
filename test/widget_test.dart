@@ -205,6 +205,10 @@ class _FakeHomeDashboardRepository implements HomeDashboardRepository {
           xp: const [3, 6, 0, 4, 8, 5, 7, 12, 2, 9][index % 10],
         ),
       ),
+      monthlyProgress: const HomeMonthlyProgress(
+        studiedDays: 16,
+        maxDays: 30,
+      ),
     );
   }
 }

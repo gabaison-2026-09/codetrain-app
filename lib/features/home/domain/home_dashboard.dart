@@ -15,6 +15,16 @@ class HomeXpPoint {
   final int xp;
 }
 
+class HomeMonthlyProgress {
+  const HomeMonthlyProgress({
+    required this.studiedDays,
+    required this.maxDays,
+  });
+
+  final int studiedDays;
+  final int maxDays;
+}
+
 class HomeDashboard {
   const HomeDashboard({
     required this.activityDate,
@@ -22,6 +32,7 @@ class HomeDashboard {
     required this.dayStatuses,
     required this.studyTasks,
     required this.recentXp,
+    required this.monthlyProgress,
     this.highlightedDayIndex = 3,
   });
 
@@ -30,5 +41,6 @@ class HomeDashboard {
   final List<HomeDayStatus> dayStatuses;
   final List<HomeStudyTask> studyTasks;
   final List<HomeXpPoint> recentXp;
+  final HomeMonthlyProgress monthlyProgress;
   final int highlightedDayIndex;
 }

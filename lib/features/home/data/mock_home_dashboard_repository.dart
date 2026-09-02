@@ -42,6 +42,10 @@ class MockHomeDashboardRepository implements HomeDashboardRepository {
           xp: const [4, 8, 0, 11, 7, 12, 9, 6, 10, 3][index % 10],
         ),
       ),
+      monthlyProgress: HomeMonthlyProgress(
+        studiedDays: 16,
+        maxDays: DateTime(now.year, now.month + 1, 0).day.clamp(1, 30).toInt(),
+      ),
     );
   }
 
