@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../data/mock_top_navigation_repository.dart';
+import '../domain/home_dashboard_repository.dart';
 import '../domain/top_navigation_repository.dart';
 import '../domain/top_navigation_status.dart';
 import '../../../shared/widgets/code_train_bottom_navigation.dart';
@@ -12,22 +13,21 @@ import '../../task/presentation/task_page.dart';
 import 'home_tab_page.dart';
 
 class HomePage extends StatefulWidget {
-  const HomePage({super.key, this.topNavigationRepository});
+  const HomePage({
+    super.key,
+    this.topNavigationRepository,
+    this.homeRepository,
+  });
 
   final TopNavigationRepository? topNavigationRepository;
+  final HomeDashboardRepository? homeRepository;
 
   @override
   State<HomePage> createState() => _HomePageState();
 }
 
 class _HomePageState extends State<HomePage> {
-  static const _pages = <Widget>[
-    CalendarPage(),
-    LearnPage(),
-    HomeTabPage(),
-    TaskPage(),
-    ProfilePage(),
-  ];
+  late final List<Widget> _pages;
 
   int _selectedIndex = 2;
   late final TopNavigationRepository _topNavigationRepository;
@@ -39,32 +39,21 @@ class _HomePageState extends State<HomePage> {
     _topNavigationRepository =
         widget.topNavigationRepository ?? const MockTopNavigationRepository();
     _topNavigationStatusFuture = _topNavigationRepository.fetchStatus();
+    _pages = [
+      const CalendarPage(),
+      const LearnPage(),
+      HomeTabPage(repository: widget.homeRepository),
+      const TaskPage(),
+      const ProfilePage(),
+    ];
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xfff5f6f7),
+      backgroundColor: Colors.white,
       body: Stack(
         children: [
-          Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            child: FutureBuilder<TopNavigationStatus>(
-              future: _topNavigationStatusFuture,
-              initialData: MockTopNavigationRepository.mockStatus,
-              builder: (context, snapshot) {
-                final status = snapshot.data!;
-                return CodeTrainTopNavigation(
-                  level: status.level,
-                  progress: status.experienceProgress,
-                  filledHeartCount: status.hearts,
-                  heartCount: status.maxHearts,
-                );
-              },
-            ),
-          ),
           AnimatedSwitcher(
             duration: const Duration(milliseconds: 260),
             reverseDuration: const Duration(milliseconds: 180),
@@ -94,6 +83,24 @@ class _HomePageState extends State<HomePage> {
             child: KeyedSubtree(
               key: ValueKey(_selectedIndex),
               child: _pages[_selectedIndex],
+            ),
+          ),
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: FutureBuilder<TopNavigationStatus>(
+              future: _topNavigationStatusFuture,
+              initialData: MockTopNavigationRepository.mockStatus,
+              builder: (context, snapshot) {
+                final status = snapshot.data!;
+                return CodeTrainTopNavigation(
+                  level: status.level,
+                  progress: status.experienceProgress,
+                  filledHeartCount: status.hearts,
+                  heartCount: status.maxHearts,
+                );
+              },
             ),
           ),
           Align(

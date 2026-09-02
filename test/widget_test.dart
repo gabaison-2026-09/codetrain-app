@@ -2,8 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:codetrain_app/app/app.dart';
+import 'package:codetrain_app/features/home/domain/home_dashboard.dart';
+import 'package:codetrain_app/features/home/domain/home_dashboard_repository.dart';
 import 'package:codetrain_app/features/home/data/me_response_dto.dart';
 import 'package:codetrain_app/features/home/data/mock_top_navigation_repository.dart';
+import 'package:codetrain_app/features/home/presentation/home_page.dart';
 import 'package:codetrain_app/shared/widgets/code_train_bottom_navigation.dart';
 import 'package:codetrain_app/shared/widgets/code_train_top_navigation.dart';
 
@@ -80,6 +83,26 @@ void main() {
     );
   });
 
+  testWidgets('home dashboard renders repository data', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: HomePage(
+          homeRepository: _FakeHomeDashboardRepository(),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('5'), findsOneWidget);
+    expect(find.text('/'), findsOneWidget);
+    expect(find.text('8'), findsOneWidget);
+    expect(find.text('7 days'), findsOneWidget);
+    expect(find.byIcon(Icons.play_arrow_rounded), findsOneWidget);
+    expect(find.text('TS'), findsOneWidget);
+  });
+
   testWidgets('profile selection animation can be completed', (
     WidgetTester tester,
   ) async {
@@ -125,8 +148,25 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text(tab.label), findsOneWidget);
-      expect(find.text('${tab.label} screen'), findsOneWidget);
+      if (tab.index == 2) {
+        expect(find.byIcon(Icons.play_arrow_rounded), findsOneWidget);
+        expect(find.text('Home screen'), findsNothing);
+      } else {
+        expect(find.text(tab.label), findsOneWidget);
+        expect(find.text('${tab.label} screen'), findsOneWidget);
+      }
     }
   });
+}
+
+class _FakeHomeDashboardRepository implements HomeDashboardRepository {
+  @override
+  Future<HomeDashboard> fetchDashboard() async {
+    return HomeDashboard(
+      activityDate: DateTime(2026, 8, 5),
+      streakDays: 7,
+      dayStatuses: const [HomeDayStatus.completed],
+      programs: const [HomeProgram.typescript],
+    );
+  }
 }
