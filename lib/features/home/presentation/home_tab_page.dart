@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../domain/home_dashboard.dart';
 import '../domain/home_dashboard_repository.dart';
@@ -94,6 +95,7 @@ class _HomeDashboardViewState extends State<_HomeDashboardView> {
     }
 
     final direction = velocity < 0 ? 1 : -1;
+    HapticFeedback.selectionClick();
     setState(() {
       _swipeDirection = direction;
       _selectedTaskIndex =
