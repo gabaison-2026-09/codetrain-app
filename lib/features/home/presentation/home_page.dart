@@ -8,6 +8,8 @@ import '../../../shared/widgets/code_train_bottom_navigation.dart';
 import '../../../shared/widgets/code_train_top_navigation.dart';
 import '../../calendar/presentation/calendar_page.dart';
 import '../../learn/presentation/learn_page.dart';
+import '../../learn/domain/learn_content.dart';
+import '../../learn/domain/learn_repository.dart';
 import '../../profile/presentation/profile_page.dart';
 import '../../task/presentation/task_page.dart';
 import 'home_tab_page.dart';
@@ -17,14 +19,18 @@ class HomePage extends StatefulWidget {
     super.key,
     required this.topNavigationRepository,
     required this.homeRepository,
+    required this.learnRepository,
     this.initialTopNavigationStatus,
     this.initialHomeDashboard,
+    this.initialLearnCatalog,
   });
 
   final TopNavigationRepository topNavigationRepository;
   final HomeDashboardRepository homeRepository;
+  final LearnRepository learnRepository;
   final TopNavigationStatus? initialTopNavigationStatus;
   final HomeDashboard? initialHomeDashboard;
+  final LearnCatalog? initialLearnCatalog;
 
   @override
   State<HomePage> createState() => _HomePageState();
@@ -34,6 +40,7 @@ class _HomePageState extends State<HomePage> {
   late final List<Widget> _pages;
 
   int _selectedIndex = 2;
+  var _isLearnQuestionViewVisible = false;
   late final TopNavigationRepository _topNavigationRepository;
   late final Future<TopNavigationStatus> _topNavigationStatusFuture;
 
@@ -44,7 +51,14 @@ class _HomePageState extends State<HomePage> {
     _topNavigationStatusFuture = _topNavigationRepository.fetchStatus();
     _pages = [
       const CalendarPage(),
-      const LearnPage(),
+      LearnPage(
+        repository: widget.learnRepository,
+        initialCatalog: widget.initialLearnCatalog,
+        onQuestionViewChanged: (isVisible) {
+          if (_isLearnQuestionViewVisible == isVisible) return;
+          setState(() => _isLearnQuestionViewVisible = isVisible);
+        },
+      ),
       HomeTabPage(
         repository: widget.homeRepository,
         initialDashboard: widget.initialHomeDashboard,
@@ -110,27 +124,31 @@ class _HomePageState extends State<HomePage> {
               },
             ),
           ),
-          Align(
-            alignment: Alignment.bottomCenter,
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                final scale = (constraints.maxWidth / 973).clamp(0.32, 1.0);
-                final systemBottomInset = MediaQuery.of(context).padding.bottom;
-                return SizedBox(
-                  width: 973 * scale,
-                  height: 325 * scale + systemBottomInset,
-                  child: CodeTrainBottomNavigation(
-                    bottomInset: systemBottomInset / scale,
-                    onTabSelected: (index) {
-                      setState(() {
-                        _selectedIndex = index;
-                      });
-                    },
-                  ),
-                );
-              },
+          if (!(_selectedIndex == 1 && _isLearnQuestionViewVisible))
+            Align(
+              alignment: Alignment.bottomCenter,
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final scale = (constraints.maxWidth / 973).clamp(0.32, 1.0);
+                  final systemBottomInset = MediaQuery.of(
+                    context,
+                  ).padding.bottom;
+                  return SizedBox(
+                    width: 973 * scale,
+                    height: 325 * scale + systemBottomInset,
+                    child: CodeTrainBottomNavigation(
+                      initialSelectedIndex: _selectedIndex,
+                      bottomInset: systemBottomInset / scale,
+                      onTabSelected: (index) {
+                        setState(() {
+                          _selectedIndex = index;
+                        });
+                      },
+                    ),
+                  );
+                },
+              ),
             ),
-          ),
         ],
       ),
     );

@@ -7,6 +7,8 @@ import 'package:codetrain_app/features/home/domain/home_dashboard_repository.dar
 import 'package:codetrain_app/features/home/data/me_response_dto.dart';
 import 'package:codetrain_app/features/home/data/mock_top_navigation_repository.dart';
 import 'package:codetrain_app/features/home/presentation/home_page.dart';
+import 'package:codetrain_app/features/learn/data/learn_response_dto.dart';
+import 'package:codetrain_app/features/learn/data/mock_learn_repository.dart';
 import 'package:codetrain_app/shared/widgets/code_train_bottom_navigation.dart';
 import 'package:codetrain_app/shared/widgets/code_train_top_navigation.dart';
 
@@ -91,10 +93,12 @@ void main() {
         home: HomePage(
           topNavigationRepository: const MockTopNavigationRepository(),
           homeRepository: _FakeHomeDashboardRepository(),
+          learnRepository: const MockLearnRepository(),
         ),
       ),
     );
-    await tester.pumpAndSettle();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 600));
 
     expect(find.text('5'), findsOneWidget);
     expect(find.text('/'), findsOneWidget);
@@ -110,24 +114,32 @@ void main() {
   testWidgets('swiping the play area switches the whole study task', (
     WidgetTester tester,
   ) async {
+    tester.view.physicalSize = const Size(800, 1200);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
     await tester.pumpWidget(
       MaterialApp(
         home: HomePage(
           topNavigationRepository: const MockTopNavigationRepository(),
           homeRepository: _FakeHomeDashboardRepository(),
+          learnRepository: const MockLearnRepository(),
         ),
       ),
     );
-    await tester.pumpAndSettle();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 600));
 
     expect(find.byKey(const ValueKey('home-programs-task-0')), findsOneWidget);
     expect(find.text('TS'), findsOneWidget);
 
-    await tester.drag(
+    await tester.fling(
       find.byIcon(Icons.play_arrow_rounded),
       const Offset(-160, 0),
+      1200,
     );
-    await tester.pumpAndSettle();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 600));
 
     expect(find.byKey(const ValueKey('home-programs-task-1')), findsOneWidget);
     expect(find.text('TS'), findsNothing);
@@ -176,16 +188,174 @@ void main() {
           navigationRect.center.dy,
         ),
       );
-      await tester.pumpAndSettle();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 600));
 
       if (tab.index == 2) {
         expect(find.byIcon(Icons.play_arrow_rounded), findsOneWidget);
         expect(find.text('Home screen'), findsNothing);
+      } else if (tab.index == 1) {
+        expect(find.text('何を学習する？'), findsOneWidget);
+        expect(find.text('Learn screen'), findsNothing);
       } else {
         expect(find.text(tab.label), findsOneWidget);
         expect(find.text('${tab.label} screen'), findsOneWidget);
       }
     }
+  });
+
+  test('learning API DTOs map to domain models', () {
+    final catalog = LearnSkillsResponseDto.fromJson({
+      'skills': [
+        {
+          'id': 'skill-1',
+          'name': 'JavaScript 基礎',
+          'description': '基本を学ぶ',
+          'nodes': [
+            {'id': 'node-1', 'name': '値と型', 'difficulty': 1},
+          ],
+        },
+      ],
+    }).toDomain();
+    final question = LearnQuestionDetailDto.fromJson({
+      'id': 'question-1',
+      'skill_node_id': 'node-1',
+      'type': 'output_prediction',
+      'difficulty': 1,
+      'title': '出力を選ぶ',
+      'body': '正しい出力は？',
+      'code': 'print(1)',
+      'code_language': 'dart',
+      'choices': [
+        {'key': 'a', 'text': '1'},
+      ],
+      'tags': ['output'],
+    }).toDomain();
+
+    expect(catalog.skills.single.nodes.single.name, '値と型');
+    expect(question.codeLanguage, 'dart');
+    expect(question.choices.single.key, 'a');
+  });
+
+  testWidgets('learner selects a topic and answers a four-choice question', (
+    WidgetTester tester,
+  ) async {
+    tester.view.physicalSize = const Size(800, 1800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    await tester.pumpWidget(const CodeTrainApp());
+
+    final navigation = find.byType(CodeTrainBottomNavigation);
+    final navigationRect = tester.getRect(navigation);
+    await tester.tapAt(
+      Offset(
+        navigationRect.left + navigationRect.width * 302 / 973,
+        navigationRect.center.dy,
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 600));
+
+    expect(find.text('何を学習する？'), findsOneWidget);
+    expect(find.text('JavaScript 基礎'), findsOneWidget);
+
+    final arrayNode = find.byKey(const ValueKey('learn-node-node-arrays'));
+    await tester.ensureVisible(arrayNode);
+    await tester.tap(arrayNode);
+    final startButton = find.byKey(const ValueKey('learn-start-button'));
+    await tester.ensureVisible(startButton);
+    await tester.tap(startButton);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 600));
+
+    expect(find.text('map の戻り値'), findsOneWidget);
+    expect(find.byType(CodeTrainBottomNavigation), findsNothing);
+    expect(find.byKey(const ValueKey('learn-choice-a')), findsOneWidget);
+    expect(find.byKey(const ValueKey('learn-choice-b')), findsOneWidget);
+    expect(find.byKey(const ValueKey('learn-choice-c')), findsOneWidget);
+    expect(find.byKey(const ValueKey('learn-choice-d')), findsOneWidget);
+
+    final correctChoice = find.byKey(const ValueKey('learn-choice-b'));
+    await tester.ensureVisible(correctChoice);
+    await tester.tap(correctChoice);
+    await tester.pump();
+    final answerButton = find.byKey(const ValueKey('learn-answer-button'));
+    await tester.ensureVisible(answerButton);
+    await tester.tap(answerButton);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 600));
+
+    expect(find.byKey(const ValueKey('learn-answer-result')), findsOneWidget);
+    expect(find.text('正解！'), findsOneWidget);
+    expect(find.text('+10 XP'), findsOneWidget);
+  });
+
+  testWidgets('learning continues with feedback after every five questions', (
+    WidgetTester tester,
+  ) async {
+    tester.view.physicalSize = const Size(800, 1800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    await tester.pumpWidget(const CodeTrainApp());
+
+    final navigation = find.byType(CodeTrainBottomNavigation);
+    final navigationRect = tester.getRect(navigation);
+    await tester.tapAt(
+      Offset(
+        navigationRect.left + navigationRect.width * 302 / 973,
+        navigationRect.center.dy,
+      ),
+    );
+    await tester.pump(const Duration(milliseconds: 600));
+
+    final arrayNode = find.byKey(const ValueKey('learn-node-node-arrays'));
+    await tester.ensureVisible(arrayNode);
+    await tester.tap(arrayNode);
+    final startButton = find.byKey(const ValueKey('learn-start-button'));
+    await tester.ensureVisible(startButton);
+    await tester.tap(startButton);
+    await tester.pump(const Duration(milliseconds: 600));
+
+    expect(find.byKey(const ValueKey('learn-question-back')), findsNothing);
+    expect(find.byType(CodeTrainBottomNavigation), findsNothing);
+    expect(find.text('1 / 5'), findsOneWidget);
+
+    for (var questionNumber = 1; questionNumber <= 5; questionNumber++) {
+      final correctChoice = find.byKey(const ValueKey('learn-choice-b'));
+      await tester.ensureVisible(correctChoice);
+      await tester.tap(correctChoice);
+      await tester.pump();
+
+      final answerButton = find.byKey(const ValueKey('learn-answer-button'));
+      await tester.ensureVisible(answerButton);
+      await tester.tap(answerButton);
+      await tester.pump();
+
+      expect(find.text('$questionNumber / 5'), findsOneWidget);
+      if (questionNumber == 5) {
+        expect(find.text('フィードバックを見る'), findsOneWidget);
+      }
+
+      await tester.ensureVisible(answerButton);
+      await tester.tap(answerButton);
+      await tester.pump();
+    }
+
+    expect(find.byKey(const ValueKey('learn-feedback')), findsOneWidget);
+    expect(find.text('5問のフィードバック'), findsOneWidget);
+    expect(find.text('5 / 5'), findsOneWidget);
+    expect(find.text('+50 XP'), findsOneWidget);
+    expect(find.byType(CodeTrainBottomNavigation), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('learn-feedback-continue')));
+    await tester.pump();
+
+    expect(find.byKey(const ValueKey('learn-feedback')), findsNothing);
+    expect(find.byType(CodeTrainBottomNavigation), findsNothing);
+    expect(find.text('1 / 5'), findsOneWidget);
+    expect(find.text('map の戻り値'), findsOneWidget);
   });
 }
 
@@ -199,14 +369,8 @@ class _FakeHomeDashboardRepository implements HomeDashboardRepository {
         HomeStudyTask(languages: [HomeLanguage.typescript]),
         HomeStudyTask(languages: [HomeLanguage.csharp, HomeLanguage.ruby]),
       ],
-      taskProgress: const HomeTaskProgress(
-        completedTasks: 2,
-        totalTasks: 5,
-      ),
-      monthlyProgress: const HomeMonthlyProgress(
-        studiedDays: 16,
-        maxDays: 30,
-      ),
+      taskProgress: const HomeTaskProgress(completedTasks: 2, totalTasks: 5),
+      monthlyProgress: const HomeMonthlyProgress(studiedDays: 16, maxDays: 30),
     );
   }
 }

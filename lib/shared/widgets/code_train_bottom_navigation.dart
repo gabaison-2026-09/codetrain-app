@@ -7,10 +7,12 @@ import 'package:flutter/services.dart';
 class CodeTrainBottomNavigation extends StatefulWidget {
   const CodeTrainBottomNavigation({
     super.key,
+    this.initialSelectedIndex = 2,
     this.bottomInset = 0,
     this.onTabSelected,
   });
 
+  final int initialSelectedIndex;
   final double bottomInset;
   final ValueChanged<int>? onTabSelected;
 
@@ -33,13 +35,15 @@ class _CodeTrainBottomNavigationState extends State<CodeTrainBottomNavigation>
 
   late final AnimationController _animationController;
   late final Animation<double> _animation;
-  int _selectedIndex = 2;
-  int _previousSelectedIndex = 2;
+  late int _selectedIndex;
+  late int _previousSelectedIndex;
   bool _hasTriggeredSelectionHaptic = false;
 
   @override
   void initState() {
     super.initState();
+    _selectedIndex = widget.initialSelectedIndex;
+    _previousSelectedIndex = widget.initialSelectedIndex;
     _animationController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 520),
