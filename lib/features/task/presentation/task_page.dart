@@ -146,8 +146,6 @@ class _TaskPageState extends State<TaskPage> {
             final bottomScale = (constraints.maxWidth / 973).clamp(0.32, 1.0);
             final bottomHeight = 325 * bottomScale + mediaPadding.bottom;
             final tasks = catalog.tasks;
-            final homeTaskCount =
-                tasks.where((task) => task.isHomeTask).length;
             return SingleChildScrollView(
               padding: EdgeInsets.fromLTRB(
                 22,
@@ -187,14 +185,6 @@ class _TaskPageState extends State<TaskPage> {
                         ],
                       ),
                       const SizedBox(height: 8),
-                      Text(
-                        'ホームで開始するタスク  $homeTaskCount / $maxHomeTasks',
-                        style: const TextStyle(
-                          color: muted,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
                       const SizedBox(height: 18),
                       const Divider(height: 1, color: line),
                       for (final task in tasks) ...[
