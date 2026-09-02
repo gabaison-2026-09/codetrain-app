@@ -7,6 +7,8 @@ import '../features/home/domain/top_navigation_repository.dart';
 import '../features/home/presentation/home_page.dart';
 import '../features/learn/data/mock_learn_repository.dart';
 import '../features/learn/domain/learn_repository.dart';
+import '../features/task/data/mock_task_repository.dart';
+import '../features/task/domain/task_repository.dart';
 
 class CodeTrainApp extends StatelessWidget {
   const CodeTrainApp({
@@ -14,11 +16,13 @@ class CodeTrainApp extends StatelessWidget {
     this.topNavigationRepository,
     this.homeRepository,
     this.learnRepository,
+    this.taskRepository,
   });
 
   final TopNavigationRepository? topNavigationRepository;
   final HomeDashboardRepository? homeRepository;
   final LearnRepository? learnRepository;
+  final TaskRepository? taskRepository;
 
   @override
   Widget build(BuildContext context) {
@@ -31,6 +35,7 @@ class CodeTrainApp extends StatelessWidget {
         homeRepository ?? const MockHomeDashboardRepository();
     final resolvedLearnRepository =
         learnRepository ?? const MockLearnRepository();
+    final resolvedTaskRepository = taskRepository ?? MockTaskRepository();
 
     return MaterialApp(
       title: 'CodeTrain',
@@ -44,6 +49,7 @@ class CodeTrainApp extends StatelessWidget {
         topNavigationRepository: resolvedTopNavigationRepository,
         homeRepository: resolvedHomeRepository,
         learnRepository: resolvedLearnRepository,
+        taskRepository: resolvedTaskRepository,
         initialTopNavigationStatus: usesMockTopNavigation
             ? MockTopNavigationRepository.mockStatus
             : null,

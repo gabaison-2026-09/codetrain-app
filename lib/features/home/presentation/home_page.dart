@@ -12,6 +12,7 @@ import '../../learn/domain/learn_content.dart';
 import '../../learn/domain/learn_repository.dart';
 import '../../profile/presentation/profile_page.dart';
 import '../../task/presentation/task_page.dart';
+import '../../task/domain/task_repository.dart';
 import 'home_tab_page.dart';
 
 class HomePage extends StatefulWidget {
@@ -20,6 +21,7 @@ class HomePage extends StatefulWidget {
     required this.topNavigationRepository,
     required this.homeRepository,
     required this.learnRepository,
+    required this.taskRepository,
     this.initialTopNavigationStatus,
     this.initialHomeDashboard,
     this.initialLearnCatalog,
@@ -28,6 +30,7 @@ class HomePage extends StatefulWidget {
   final TopNavigationRepository topNavigationRepository;
   final HomeDashboardRepository homeRepository;
   final LearnRepository learnRepository;
+  final TaskRepository taskRepository;
   final TopNavigationStatus? initialTopNavigationStatus;
   final HomeDashboard? initialHomeDashboard;
   final LearnCatalog? initialLearnCatalog;
@@ -63,7 +66,7 @@ class _HomePageState extends State<HomePage> {
         repository: widget.homeRepository,
         initialDashboard: widget.initialHomeDashboard,
       ),
-      const TaskPage(),
+      TaskPage(repository: widget.taskRepository),
       const ProfilePage(),
     ];
   }

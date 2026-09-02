@@ -8,6 +8,7 @@
 | トップナビゲーション | [`top_navigation.md`](top_navigation.md) | ホーム画面上部にプロフィール、レベル、経験値進捗、ハートを表示する。 | `lib/shared/widgets/code_train_top_navigation.dart`、`lib/features/home/presentation/home_page.dart`、`lib/features/home/data/`、`lib/features/home/domain/` |
 | ホームダッシュボード | [`home_dashboard.md`](home_dashboard.md) | 日付、連続学習日数、当月の学習進捗、学習状況、学習タスク切り替え用の再生ボタン、選択タスクの言語アイコンを表示する。 | `lib/features/home/presentation/home_tab_page.dart`、`lib/features/home/data/`、`lib/features/home/domain/` |
 | 学習画面 | [`learning.md`](learning.md) | スキルと学習項目を選び、四択問題へ継続的に回答し、正誤・解説に加えて5問ごとの正解数・獲得XPを確認しながら学習する。 | `lib/features/learn/presentation/`、`lib/features/learn/data/`、`lib/features/learn/domain/` |
+| タスク管理 | [`task_management.md`](task_management.md) | 5スロットを持つ複数の学習タスクを一覧表示し、作成・編集・削除する。 | `lib/features/task/presentation/`、`lib/features/task/data/`、`lib/features/task/domain/` |
 
 ## 更新ルール
 
