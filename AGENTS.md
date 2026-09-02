@@ -57,6 +57,11 @@
 
 Must Ask の確認待ちでコード・設定・依存関係を変更できない場合でも、仕様の整理、影響範囲の調査、`docs/feature/` への案の記録までは行ってよい。
 
+## テスト実行方針
+
+* Flutter のテスト（`flutter test`）は原則として実行しない。ユーザーから明示的に依頼された場合のみ実行する。
+* `flutter run`、`flutter analyze`、`flutter test`、`dart analyze`、`dart format` などのFlutter / Dart実行・検証コマンドは実行しない。動作確認・検証はユーザーが行う。
+
 ## Must Ask（事前確認必須）
 
 以下に関わる仕様・実装・設定変更は、ユーザーの明示的な確認を得るまで着手してはいけない。

@@ -270,6 +270,9 @@ void main() {
     await tester.pump(const Duration(milliseconds: 600));
 
     expect(find.text('map の戻り値'), findsOneWidget);
+    expect(find.text('出力予測'), findsNothing);
+    expect(find.text('JAVASCRIPT'), findsNothing);
+    expect(find.text('Lv.2'), findsNothing);
     expect(find.byType(CodeTrainBottomNavigation), findsNothing);
     expect(find.byKey(const ValueKey('learn-choice-a')), findsOneWidget);
     expect(find.byKey(const ValueKey('learn-choice-b')), findsOneWidget);
@@ -345,8 +348,14 @@ void main() {
 
     expect(find.byKey(const ValueKey('learn-feedback')), findsOneWidget);
     expect(find.text('5問のフィードバック'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('learn-review-question-arrays-1')),
+      findsOneWidget,
+    );
+    expect(find.text('map の戻り値'), findsOneWidget);
+    expect(find.text('[2, 4, 6]'), findsOneWidget);
     expect(find.text('5 / 5'), findsOneWidget);
-    expect(find.text('+50 XP'), findsOneWidget);
+    expect(find.text('+50 XP'), findsNothing);
     expect(find.byType(CodeTrainBottomNavigation), findsOneWidget);
 
     await tester.tap(find.byKey(const ValueKey('learn-feedback-continue')));

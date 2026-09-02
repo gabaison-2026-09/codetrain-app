@@ -200,28 +200,9 @@ class _QuestionHeading extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final typeLabel = question.type == LearnQuestionType.outputPrediction
-        ? '出力予測'
-        : 'コード読解';
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: [
-            _MetaLabel(label: typeLabel, color: const Color(0xff6263d9)),
-            _MetaLabel(
-              label: question.codeLanguage.toUpperCase(),
-              color: const Color(0xff6263d9),
-            ),
-            _MetaLabel(
-              label: 'Lv.${question.difficulty}',
-              color: const Color(0xff6263d9),
-            ),
-          ],
-        ),
-        const SizedBox(height: 14),
         Text(
           question.title,
           style: const TextStyle(
@@ -243,33 +224,6 @@ class _QuestionHeading extends StatelessWidget {
           ),
         ),
       ],
-    );
-  }
-}
-
-class _MetaLabel extends StatelessWidget {
-  const _MetaLabel({required this.label, required this.color});
-
-  final String label;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(99),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          color: color,
-          fontFamily: 'Noto Sans Japanese',
-          fontSize: 11,
-          fontWeight: FontWeight.w700,
-        ),
-      ),
     );
   }
 }

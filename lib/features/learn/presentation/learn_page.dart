@@ -32,9 +32,9 @@ class _LearnPageState extends State<LearnPage> {
   var _questionIndex = 0;
   String? _selectedKey;
   LearnAttemptResult? _attemptResult;
+  var _questionReviews = <LearnQuestionReview>[];
   var _answeredQuestionCount = 0;
   var _correctAnswerCount = 0;
-  var _gainedXp = 0;
   var _isShowingFeedback = false;
   DateTime? _questionStartedAt;
   var _isLoadingQuestions = false;
@@ -75,9 +75,9 @@ class _LearnPageState extends State<LearnPage> {
         _questionIndex = 0;
         _selectedKey = null;
         _attemptResult = null;
+        _questionReviews = [];
         _answeredQuestionCount = 0;
         _correctAnswerCount = 0;
-        _gainedXp = 0;
         _isShowingFeedback = false;
         _questionStartedAt = DateTime.now();
         _isLoadingQuestions = false;
@@ -118,11 +118,23 @@ class _LearnPageState extends State<LearnPage> {
       }
       setState(() {
         _attemptResult = result;
+        final updatedReviews = [
+          ..._questionReviews,
+          LearnQuestionReview(
+            question: questions[_questionIndex],
+            selectedKey: selectedKey,
+            result: result,
+          ),
+        ];
+        _questionReviews = updatedReviews.length > _feedbackInterval
+            ? updatedReviews.sublist(
+                updatedReviews.length - _feedbackInterval,
+              )
+            : updatedReviews;
         _answeredQuestionCount += 1;
         if (result.isCorrect) {
           _correctAnswerCount += 1;
         }
-        _gainedXp += result.xpGained;
         _isSubmitting = false;
       });
     } catch (_) {
@@ -159,14 +171,30 @@ class _LearnPageState extends State<LearnPage> {
       _questionIndex = (_questionIndex + 1) % questions.length;
       _selectedKey = null;
       _attemptResult = null;
+      _questionReviews = [];
       _answeredQuestionCount = 0;
       _correctAnswerCount = 0;
-      _gainedXp = 0;
       _isShowingFeedback = false;
       _questionStartedAt = DateTime.now();
       _errorMessage = null;
     });
     widget.onQuestionViewChanged?.call(true);
+  }
+
+  void _handleBackToList() {
+    setState(() {
+      _questions = null;
+      _questionIndex = 0;
+      _selectedKey = null;
+      _attemptResult = null;
+      _questionReviews = [];
+      _answeredQuestionCount = 0;
+      _correctAnswerCount = 0;
+      _isShowingFeedback = false;
+      _questionStartedAt = null;
+      _errorMessage = null;
+    });
+    widget.onQuestionViewChanged?.call(false);
   }
 
   @override
@@ -193,8 +221,9 @@ class _LearnPageState extends State<LearnPage> {
             return LearnFeedbackView(
               correctAnswerCount: _correctAnswerCount,
               questionCount: _feedbackInterval,
-              gainedXp: _gainedXp,
+              reviews: _questionReviews,
               contentPadding: contentPadding,
+              onBackToList: _handleBackToList,
               onContinue: _handleContinueAfterFeedback,
             );
           }

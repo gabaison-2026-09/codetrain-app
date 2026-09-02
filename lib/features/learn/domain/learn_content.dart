@@ -78,3 +78,15 @@ class LearnAttemptResult {
   final String explanation;
   final int xpGained;
 }
+
+class LearnQuestionReview {
+  const LearnQuestionReview({
+    required this.question,
+    required this.selectedKey,
+    required this.result,
+  });
+
+  final LearnQuestion question;
+  final String selectedKey;
+  final LearnAttemptResult result;
+}
