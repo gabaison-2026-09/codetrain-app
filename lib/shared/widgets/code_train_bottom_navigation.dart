@@ -29,7 +29,7 @@ class _CodeTrainBottomNavigationState extends State<CodeTrainBottomNavigation>
     'Learn',
     'Home',
     'Task',
-    'Profile',
+    'Friend',
   ];
   static const _selectionBurstProgress = 0.70;
 
@@ -340,7 +340,7 @@ class _AnimatedBottomNavigationPainter extends _BottomNavigationPainter {
       _drawTask(canvas, Offset(tabCenters[3], 169));
     }
     if (selectedIndex != 4) {
-      _drawProfile(canvas, Offset(tabCenters[4], 169));
+      _drawFriend(canvas, Offset(tabCenters[4], 169));
     }
     if (selectedIndex != 2) {
       _drawHouseMark(canvas, Offset(tabCenters[2], 169), 0.55);
@@ -360,7 +360,7 @@ class _AnimatedBottomNavigationPainter extends _BottomNavigationPainter {
       );
     }
 
-    const labels = <String>['Calendar', 'Learn', 'Home', 'Task', 'Profile'];
+    const labels = <String>['Calendar', 'Learn', 'Home', 'Task', 'Friend'];
     for (var index = 0; index < labels.length; index++) {
       if (index != selectedIndex) {
         _drawLabel(canvas, labels[index], Offset(tabCenters[index], 270), 26);
@@ -486,7 +486,7 @@ class _AnimatedBottomNavigationPainter extends _BottomNavigationPainter {
       case 3:
         _drawTask(canvas, baseCenter);
       case 4:
-        _drawProfile(canvas, baseCenter);
+        _drawFriend(canvas, baseCenter);
     }
     canvas.restore();
   }
@@ -554,7 +554,7 @@ class _BottomNavigationPainter extends CustomPainter {
     _drawCalendar(canvas, const Offset(118, 169));
     _drawLearn(canvas, const Offset(302, 169));
     _drawTask(canvas, const Offset(668, 169));
-    _drawProfile(canvas, const Offset(851, 169));
+    _drawFriend(canvas, const Offset(851, 169));
     _drawHome(canvas, const Offset(483, 102));
 
     _drawNode(canvas, const Offset(118, 236), 15);
@@ -567,7 +567,7 @@ class _BottomNavigationPainter extends CustomPainter {
     _drawLabel(canvas, 'Learn', const Offset(302, 270), 26);
     _drawLabel(canvas, 'Home', const Offset(483, 264), 43);
     _drawLabel(canvas, 'Task', const Offset(668, 270), 26);
-    _drawLabel(canvas, 'Profile', const Offset(851, 270), 26);
+    _drawLabel(canvas, 'Friend', const Offset(851, 270), 26);
 
     canvas.restore();
   }
@@ -663,20 +663,25 @@ class _BottomNavigationPainter extends CustomPainter {
     canvas.restore();
   }
 
-  void _drawProfile(Canvas canvas, Offset center) {
+  void _drawFriend(Canvas canvas, Offset center) {
     canvas.save();
     canvas.translate(center.dx - 851, center.dy - 169);
     final outline = Paint()
       ..color = _black
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 5;
-    canvas.drawCircle(const Offset(851, 169), 32, outline);
-    canvas.drawCircle(const Offset(851, 160), 10, outline);
-    final shoulders = Path()
-      ..moveTo(827, 191)
-      ..cubicTo(834, 181, 843, 178, 851, 178)
-      ..cubicTo(860, 178, 869, 181, 876, 191);
-    canvas.drawPath(shoulders, outline);
+      ..strokeWidth = 5
+      ..strokeCap = StrokeCap.round;
+    canvas.drawCircle(const Offset(842, 158), 10, outline);
+    canvas.drawCircle(const Offset(862, 163), 8, outline);
+    final firstShoulders = Path()
+      ..moveTo(822, 190)
+      ..cubicTo(827, 178, 837, 174, 844, 174)
+      ..cubicTo(852, 174, 860, 179, 864, 188);
+    final secondShoulders = Path()
+      ..moveTo(858, 181)
+      ..cubicTo(865, 177, 875, 181, 880, 190);
+    canvas.drawPath(firstShoulders, outline);
+    canvas.drawPath(secondShoulders, outline);
     canvas.restore();
   }
 

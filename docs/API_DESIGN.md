@@ -51,6 +51,20 @@
 | PATCH | `/v1/me` | 表示名・アイコンを更新する | 必須 |
 | GET | `/v1/me/stats` | 種別×言語ごとの正答率を取得する（プロフィール画面用） | 必須 |
 
+### フレンド
+
+> **クライアント要件によるAPI追加（2026-09-03）**: Friend画面で、公開ユーザーの検索、関係別一覧、申請送信・取消、承認・拒否、フレンド解除を行う。検索・一覧では `id`、公開用の `user_code`、`display_name`、`avatar_url`、ログインユーザーとの `relationship` のみを返し、`email` と `external_id` は返さない。`user_code` はユーザー作成時にサーバーが一意な値を発行し、`GET /v1/me` と `POST /v1/me` のユーザー情報にも追加する必要がある。以下はクライアントが必要とする暫定契約であり、バックエンド実装前に公開範囲、ブロック、保持期間を確定する。
+
+| 種別 | エンドポイント | 概略 | 認証是非 |
+| --- | --- | --- | --- |
+| GET | `/v1/users/by-code/{user_code}` | 公開用ユーザーIDの完全一致でユーザーを1件検索する | 必須 |
+| GET | `/v1/friends?relationship=friend\|outgoing_request\|incoming_request` | 関係別にユーザーを取得する | 必須 |
+| POST | `/v1/friend-requests` | フレンド申請を送信する | 必須 |
+| DELETE | `/v1/friend-requests/{user_id}` | 送信した申請を取り消す | 必須 |
+| POST | `/v1/friend-requests/{user_id}/accept` | 受信した申請を承認する | 必須 |
+| POST | `/v1/friend-requests/{user_id}/decline` | 受信した申請を拒否する | 必須 |
+| DELETE | `/v1/friends/{user_id}` | フレンド関係を解除する | 必須 |
+
 ### スキルツリー / 学習画面
 
 | 種別 | エンドポイント | 概略 | 認証是非 |
@@ -109,6 +123,7 @@
   "user": {
     "id": "uuid",
     "external_id": "cognito-sub",
+    "user_code": "engineer_taro",
     "display_name": "エンジニア太郎",
     "email": "user@example.com",
     "created_at": "2026-09-02T03:04:05Z"
@@ -198,6 +213,31 @@
 ```
 - `language: ""` は「言語を問わない」集計（[DB_SCHEMA.md](DB_SCHEMA.md) §3）
 - `user_type_stat` を使わず `attempt` 集約で代替する場合も、レスポンス形は変えない（§5 の備考どおりテーブルの有無は実装詳細）
+
+---
+
+### フレンドAPI共通契約（暫定）
+
+**検索・関係別一覧のユーザー要素**
+```json
+{
+  "id": "uuid",
+  "user_code": "sora_js",
+  "display_name": "Sora",
+  "avatar_url": "https://.../photo.jpg",
+  "relationship": "friend",
+  "streak_days": 7
+}
+```
+
+- `relationship`: `none` / `friend` / `outgoing_request` / `incoming_request`
+- `GET /v1/users/by-code/{user_code}` は `user_code` の完全一致で検索し、自分自身を検索結果へ含めない
+- `streak_days` は承認済みフレンドを返す場合だけ含め、ユーザー検索、送信申請、受信申請には含めない
+- 完全一致検索は `user` を1件返し、該当しない場合は `PUBLIC_USER_NOT_FOUND` とする
+- 関係別一覧はページングに対応し、レスポンスに `users` と `next_cursor` を含める
+- `POST /v1/friend-requests` のリクエストは `{"target_user_id":"uuid"}` とする
+- 重複申請、自分自身への申請、既存フレンドへの申請は拒否する
+- 承認・拒否は受信中、取消は送信中、解除はフレンド中の場合のみ許可する
 
 ---
 
@@ -712,6 +752,9 @@
 | --- | --- | --- |
 | `USER_NOT_FOUND` | 404 | 認証済みだが `app_user` に未登録（`POST /v1/me` が必要） |
 | `USER_ALREADY_PROVISIONED` | 409 | `POST /v1/me` を、既に登録済みの `external_id` で呼んだ |
+| `PUBLIC_USER_NOT_FOUND` | 404 | 指定した公開用ユーザーIDに完全一致する検索可能なユーザーが存在しない |
+| `FRIEND_REQUEST_CONFLICT` | 409 | 重複申請、自分自身への申請、既存フレンドへの申請、または現在の関係状態と操作が一致しない |
+| `FRIEND_RELATION_NOT_FOUND` | 404 | 対象ユーザーまたは操作対象の申請・フレンド関係が存在しない |
 | `QUESTION_NOT_FOUND` | 404 | 問題が存在しない、または（一般ユーザーからは）`status != published` |
 | `TASK_SLOT_NO_INVALID` | 400 / 404 | `slot_no` が1〜5の範囲外、または該当スロットが未設定（DELETE時） |
 | `TASK_SLOT_OPTION_INVALID` | 422 | 指定した（種別, 言語, 難易度）が `available_task_option` に存在しない |
@@ -732,3 +775,4 @@
 | `GET /v1/home` の難易度未指定スロット解決 | 推奨難易度アルゴリズム、未回答問題枯渇時のフォールバック | B-10 |
 | `srs_state` の間隔更新規則 | SM-2 初期値・不正解時のリセット規則 | B-4 |
 | `/v1/admin/*` の権限モデル | レビュアーロールの表現・付与方法 | C-5 / D-2 |
+| フレンド機能 | 検索可能な公開範囲、ブロック機能、申請・解除後の保持期間 | 新規検討事項 |

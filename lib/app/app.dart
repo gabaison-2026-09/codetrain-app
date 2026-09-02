@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../features/friend/data/mock_friend_repository.dart';
+import '../features/friend/domain/friend_repository.dart';
 import '../features/home/data/mock_home_dashboard_repository.dart';
 import '../features/home/data/mock_top_navigation_repository.dart';
 import '../features/home/domain/home_dashboard_repository.dart';
@@ -17,6 +19,7 @@ class CodeTrainApp extends StatelessWidget {
     super.key,
     this.topNavigationRepository,
     this.homeRepository,
+    this.friendRepository,
     this.taskLauncher,
     this.learnRepository,
     this.taskRepository,
@@ -24,6 +27,7 @@ class CodeTrainApp extends StatelessWidget {
 
   final TopNavigationRepository? topNavigationRepository;
   final HomeDashboardRepository? homeRepository;
+  final FriendRepository? friendRepository;
   final TaskLauncher? taskLauncher;
   final LearnRepository? learnRepository;
   final TaskRepository? taskRepository;
@@ -37,6 +41,7 @@ class CodeTrainApp extends StatelessWidget {
         topNavigationRepository ?? const MockTopNavigationRepository();
     final resolvedHomeRepository =
         homeRepository ?? const MockHomeDashboardRepository();
+    final resolvedFriendRepository = friendRepository ?? MockFriendRepository();
     final resolvedTaskLauncher = taskLauncher ?? const MockTaskLauncher();
     final resolvedLearnRepository =
         learnRepository ?? const MockLearnRepository();
@@ -53,6 +58,7 @@ class CodeTrainApp extends StatelessWidget {
       home: HomePage(
         topNavigationRepository: resolvedTopNavigationRepository,
         homeRepository: resolvedHomeRepository,
+        friendRepository: resolvedFriendRepository,
         taskLauncher: resolvedTaskLauncher,
         learnRepository: resolvedLearnRepository,
         taskRepository: resolvedTaskRepository,
