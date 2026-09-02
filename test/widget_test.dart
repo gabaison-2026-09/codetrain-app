@@ -102,7 +102,7 @@ void main() {
     expect(find.text('7 days'), findsOneWidget);
     expect(find.byIcon(Icons.play_arrow_rounded), findsOneWidget);
     expect(find.text('TS'), findsOneWidget);
-    expect(find.byKey(const ValueKey('recent-xp-card')), findsOneWidget);
+    expect(find.text('今月の勉強量'), findsOneWidget);
   });
 
   testWidgets('swiping the play area switches the whole study task', (
@@ -193,18 +193,10 @@ class _FakeHomeDashboardRepository implements HomeDashboardRepository {
     return HomeDashboard(
       activityDate: DateTime(2026, 8, 5),
       streakDays: 7,
-      dayStatuses: const [HomeDayStatus.completed],
       studyTasks: const [
         HomeStudyTask(languages: [HomeLanguage.typescript]),
         HomeStudyTask(languages: [HomeLanguage.csharp, HomeLanguage.ruby]),
       ],
-      recentXp: List.generate(
-        30,
-        (index) => HomeXpPoint(
-          date: DateTime(2026, 8, 5).add(Duration(days: index)),
-          xp: const [3, 6, 0, 4, 8, 5, 7, 12, 2, 9][index % 10],
-        ),
-      ),
       monthlyProgress: const HomeMonthlyProgress(
         studiedDays: 16,
         maxDays: 30,
