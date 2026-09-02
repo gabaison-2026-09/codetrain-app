@@ -134,12 +134,7 @@ class _HomeDashboardViewState extends State<_HomeDashboardView> {
                 purple: _purple,
                 orange: _orange,
               ),
-              const SizedBox(height: 21),
-              _DayStatusDots(
-                statuses: dashboard.dayStatuses,
-                highlightedDayIndex: dashboard.highlightedDayIndex,
-              ),
-              const SizedBox(height: 30),
+              const SizedBox(height: 40),
               GestureDetector(
                 behavior: HitTestBehavior.opaque,
                 onHorizontalDragEnd: _handleTaskSwipe,
@@ -201,124 +196,19 @@ class _HomeDashboardViewState extends State<_HomeDashboardView> {
                   ],
                 ),
               ),
-              const SizedBox(height: 42),
-              _RecentXpCard(points: dashboard.recentXp),
+              const SizedBox(height: 48),
+              Align(
+                alignment: Alignment.center,
+                child: _MonthlyStudyProgress(
+                  progress: dashboard.monthlyProgress,
+                ),
+              ),
             ],
           ),
         );
       },
     );
   }
-}
-
-class _RecentXpCard extends StatelessWidget {
-  const _RecentXpCard({required this.points});
-
-  final List<HomeXpPoint> points;
-
-  @override
-  Widget build(BuildContext context) {
-    if (points.isEmpty) return const SizedBox.shrink();
-    final totalXp = points.fold<int>(
-      0,
-      (total, point) => total + point.xp,
-    );
-
-    return Card(
-      key: const ValueKey('recent-xp-card'),
-      margin: const EdgeInsets.symmetric(horizontal: 24),
-      color: Colors.white,
-      surfaceTintColor: Colors.transparent,
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: const BorderSide(color: Color(0xffe8e8ed)),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(14, 12, 16, 12),
-        child: Row(
-          children: [
-            Expanded(
-              child: SizedBox(
-                height: 40,
-                child: CustomPaint(
-                  painter: _RecentXpChartPainter(points: points),
-                ),
-              ),
-            ),
-            const SizedBox(width: 18),
-            Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                const Text(
-                  'total',
-                  style: TextStyle(
-                    color: Color(0xff9b9ba4),
-                    fontSize: 10,
-                    fontWeight: FontWeight.w500,
-                    letterSpacing: 0.8,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  '$totalXp',
-                  style: const TextStyle(
-                    fontFamily: 'Russo One',
-                    fontSize: 18,
-                    fontWeight: FontWeight.w400,
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _RecentXpChartPainter extends CustomPainter {
-  const _RecentXpChartPainter({required this.points});
-
-  final List<HomeXpPoint> points;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    if (points.isEmpty || size.width <= 0 || size.height <= 0) return;
-
-    final maxXp = points.fold<int>(
-      1,
-      (maximum, point) => point.xp > maximum ? point.xp : maximum,
-    );
-    final gap = points.length > 14 ? 3.5 : (points.length > 1 ? 7.0 : 0.0);
-    final barWidth = ((size.width - gap * (points.length - 1)) / points.length)
-        .clamp(3.0, 9.0)
-        .toDouble();
-    final chartHeight = size.height - 3;
-    final barPaint = Paint()..style = PaintingStyle.fill;
-
-    for (var index = 0; index < points.length; index++) {
-      final value = points[index].xp.clamp(0, maxXp);
-      final barHeight = value == 0
-          ? 4.0
-          : (chartHeight * value / maxXp).clamp(6.0, chartHeight).toDouble();
-      final left = index * (barWidth + gap);
-      final top = chartHeight - barHeight;
-      barPaint.color = const Color(0xff6263d9);
-      canvas.drawRRect(
-        RRect.fromRectAndRadius(
-          Rect.fromLTWH(left, top, barWidth, barHeight),
-          Radius.circular(barWidth / 2),
-        ),
-        barPaint,
-      );
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant _RecentXpChartPainter oldDelegate) =>
-      oldDelegate.points != points;
 }
 
 class _DateAndStreakRow extends StatelessWidget {
@@ -397,58 +287,140 @@ class _DateAndStreakRow extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 10),
-        Padding(
-          padding: const EdgeInsets.only(top: 6, right: 9),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Icon(
-                    Icons.local_fire_department_outlined,
-                    color: orange,
-                    size: 38,
-                  ),
-                  const SizedBox(width: 8),
-                  Text.rich(
-                    TextSpan(
-                      children: [
-                        TextSpan(
-                          text: '${dashboard.streakDays}',
-                          style: const TextStyle(
-                            fontFamily: 'Jua',
-                            fontSize: 34,
-                            fontWeight: FontWeight.w400,
-                          ),
-                        ),
-                        const TextSpan(
-                          text: ' days',
-                          style: TextStyle(
-                            fontFamily: 'Russo One',
-                            fontSize: 22,
-                            fontWeight: FontWeight.w400,
-                          ),
-                        ),
-                      ],
-                    ),
-                    style: const TextStyle(color: Colors.black, height: 1),
-                    maxLines: 1,
-                  ),
-                ],
-              ),
-              const SizedBox(height: 7),
-              _MonthlyStudyProgress(
-                progress: dashboard.monthlyProgress,
-              ),
-            ],
-          ),
+        _StreakProgressArc(
+          completedTasks: dashboard.taskProgress.completedTasks,
+          totalTasks: dashboard.taskProgress.totalTasks,
+          streakDays: dashboard.streakDays,
+          color: orange,
         ),
       ],
     );
   }
+}
+
+class _StreakProgressArc extends StatelessWidget {
+  const _StreakProgressArc({
+    required this.completedTasks,
+    required this.totalTasks,
+    required this.streakDays,
+    required this.color,
+  });
+
+  final int completedTasks;
+  final int totalTasks;
+  final int streakDays;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    final safeTotal = totalTasks.clamp(0, 5).toInt();
+    final safeCompleted = completedTasks.clamp(0, safeTotal).toInt();
+    final progress = safeTotal == 0 ? 0.0 : safeCompleted / safeTotal;
+
+    return SizedBox(
+      width: 124,
+      height: 116,
+      child: Stack(
+        children: [
+          Positioned.fill(
+            child: CustomPaint(
+              painter: _StreakProgressArcPainter(
+                progress: progress,
+                color: color,
+              ),
+              child: Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Transform.translate(
+                      offset: const Offset(0, -6),
+                      child: Icon(
+                        Icons.local_fire_department_outlined,
+                        color: color,
+                        size: 35,
+                      ),
+                    ),
+                    Text(
+                      '$streakDays',
+                      style: const TextStyle(
+                        color: Colors.black,
+                        fontFamily: 'Jua',
+                        fontSize: 28,
+                        fontWeight: FontWeight.w400,
+                        height: 0.9,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          const Positioned(
+            left: 0,
+            right: 0,
+            bottom: 10,
+            child: Text(
+              '連続日数',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Color(0xff707078),
+                fontFamily: 'Noto Sans Japanese',
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                letterSpacing: 1,
+                height: 1,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _StreakProgressArcPainter extends CustomPainter {
+  const _StreakProgressArcPainter({
+    required this.progress,
+    required this.color,
+  });
+
+  final double progress;
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    const startAngle = 140 * math.pi / 180;
+    const sweepAngle = 260 * math.pi / 180;
+    final center = Offset(size.width / 2, size.height / 2 - 1);
+    final radius = math.min(size.width, size.height).toDouble() / 2 - 8;
+    final arcRect = Rect.fromCircle(center: center, radius: radius);
+    final trackPaint = Paint()
+      ..color = const Color(0xffe6e6eb)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 7
+      ..strokeCap = StrokeCap.round;
+    final progressPaint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 7
+      ..strokeCap = StrokeCap.round;
+
+    canvas.drawArc(arcRect, startAngle, sweepAngle, false, trackPaint);
+    if (progress > 0) {
+      canvas.drawArc(
+        arcRect,
+        startAngle,
+        sweepAngle * progress.clamp(0.0, 1.0).toDouble(),
+        false,
+        progressPaint,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _StreakProgressArcPainter oldDelegate) =>
+      oldDelegate.progress != progress ||
+      oldDelegate.color != color;
 }
 
 class _MonthlyStudyProgress extends StatelessWidget {
@@ -460,32 +432,33 @@ class _MonthlyStudyProgress extends StatelessWidget {
   Widget build(BuildContext context) {
     final maxDays = progress.maxDays.clamp(1, 30).toInt();
     final studiedDays = progress.studiedDays.clamp(0, maxDays).toInt();
-    final percentage = (studiedDays / maxDays * 100).round();
 
     return SizedBox(
-      width: 145,
+      width: 278,
       child: Column(
         mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.end,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
               const Text(
-                'MONTHLY',
+                '今月の勉強量',
                 style: TextStyle(
                   color: Color(0xff9b9ba4),
-                  fontSize: 9,
+                  fontFamily: 'Noto Sans Japanese',
+                  fontSize: 15,
                   fontWeight: FontWeight.w600,
                   letterSpacing: 0.8,
                 ),
               ),
-              const SizedBox(width: 7),
+              const SizedBox(width: 12),
               Text(
-                '$studiedDays / $maxDays  $percentage%',
+                '$studiedDays日',
                 style: const TextStyle(
                   color: Color(0xff60606a),
-                  fontSize: 10,
+                  fontFamily: 'Noto Sans Japanese',
+                  fontSize: 16,
                   fontWeight: FontWeight.w500,
                 ),
               ),
@@ -493,8 +466,8 @@ class _MonthlyStudyProgress extends StatelessWidget {
           ),
           const SizedBox(height: 3),
           SizedBox(
-            width: 145,
-            height: 22,
+            width: 278,
+            height: 28,
             child: CustomPaint(
               painter: _MonthlyStudyProgressPainter(
                 studiedDays: studiedDays,
@@ -519,11 +492,11 @@ class _MonthlyStudyProgressPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final trackHeight = 5.0;
+    final trackHeight = 7.0;
     final trackTop = 1.0;
     final trackRect = RRect.fromRectAndRadius(
       Rect.fromLTWH(0, trackTop, size.width, trackHeight),
-      const Radius.circular(3),
+      const Radius.circular(4),
     );
     canvas.drawRRect(
       trackRect,
@@ -536,7 +509,7 @@ class _MonthlyStudyProgressPainter extends CustomPainter {
       canvas.drawRRect(
         RRect.fromRectAndRadius(
           Rect.fromLTWH(0, trackTop, progressWidth, trackHeight),
-          const Radius.circular(3),
+          const Radius.circular(4),
         ),
         Paint()..color = const Color(0xff6263d9),
       );
@@ -553,14 +526,14 @@ class _MonthlyStudyProgressPainter extends CustomPainter {
 
     for (final milestone in milestones) {
       final x = size.width * milestone / maxDays;
-      canvas.drawLine(Offset(x, 0), Offset(x, 8), tickPaint);
+      canvas.drawLine(Offset(x, 0), Offset(x, 10), tickPaint);
 
       final label = TextPainter(
         text: TextSpan(
           text: '$milestone',
           style: const TextStyle(
             color: Color(0xffa2a2ad),
-            fontSize: 8,
+            fontSize: 9,
             fontWeight: FontWeight.w500,
           ),
         ),
@@ -568,79 +541,15 @@ class _MonthlyStudyProgressPainter extends CustomPainter {
       )..layout();
       final labelLeft =
           (x - label.width / 2).clamp(0.0, size.width - label.width).toDouble();
-      label.paint(canvas, Offset(labelLeft, 11));
+      label.paint(canvas, Offset(labelLeft, 14));
     }
+
   }
 
   @override
   bool shouldRepaint(covariant _MonthlyStudyProgressPainter oldDelegate) =>
-      oldDelegate.studiedDays != studiedDays || oldDelegate.maxDays != maxDays;
-}
-
-class _DayStatusDots extends StatelessWidget {
-  const _DayStatusDots({
-    required this.statuses,
-    required this.highlightedDayIndex,
-  });
-
-  final List<HomeDayStatus> statuses;
-  final int highlightedDayIndex;
-
-  Color _colorFor(HomeDayStatus status) {
-    switch (status) {
-      case HomeDayStatus.completed:
-        return const Color.fromARGB(255, 145, 201, 131);
-      case HomeDayStatus.missed:
-        return const Color(0xffe49a9a);
-      case HomeDayStatus.active:
-        return const Color(0xff6263d9);
-      case HomeDayStatus.upcoming:
-        return const Color(0xffd8d8d8);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    if (statuses.isEmpty) return const SizedBox.shrink();
-
-    var dotsWidth = 0.0;
-    for (var index = 0; index < statuses.length; index++) {
-      if (index > 0) dotsWidth += 11;
-      dotsWidth += index == highlightedDayIndex ? 22 : 14;
-    }
-
-    return Padding(
-      padding: const EdgeInsets.only(left: 21),
-      child: SizedBox(
-        width: dotsWidth,
-        height: 34,
-        child: Stack(
-          children: [
-            Positioned(
-              left: 0,
-              top: 6,
-              child: Row(
-                children: [
-                  for (var index = 0; index < statuses.length; index++) ...[
-                    if (index > 0) const SizedBox(width: 11),
-                    DecoratedBox(
-                      decoration: BoxDecoration(
-                        color: _colorFor(statuses[index]),
-                        shape: BoxShape.circle,
-                      ),
-                      child: SizedBox.square(
-                        dimension: index == highlightedDayIndex ? 22 : 14,
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+      oldDelegate.studiedDays != studiedDays ||
+      oldDelegate.maxDays != maxDays;
 }
 
 class _PlayButton extends StatefulWidget {
