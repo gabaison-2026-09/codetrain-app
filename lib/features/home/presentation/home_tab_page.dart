@@ -287,54 +287,140 @@ class _DateAndStreakRow extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 10),
-        Padding(
-          padding: const EdgeInsets.only(top: 6, right: 9),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Icon(
-                    Icons.local_fire_department_outlined,
-                    color: orange,
-                    size: 38,
-                  ),
-                  const SizedBox(width: 8),
-                  Text.rich(
-                    TextSpan(
-                      children: [
-                        TextSpan(
-                          text: '${dashboard.streakDays}',
-                          style: const TextStyle(
-                            fontFamily: 'Jua',
-                            fontSize: 34,
-                            fontWeight: FontWeight.w400,
-                          ),
-                        ),
-                        const TextSpan(
-                          text: ' days',
-                          style: TextStyle(
-                            fontFamily: 'Russo One',
-                            fontSize: 22,
-                            fontWeight: FontWeight.w400,
-                          ),
-                        ),
-                      ],
-                    ),
-                    style: const TextStyle(color: Colors.black, height: 1),
-                    maxLines: 1,
-                  ),
-                ],
-              ),
-            ],
-          ),
+        _StreakProgressArc(
+          completedTasks: dashboard.taskProgress.completedTasks,
+          totalTasks: dashboard.taskProgress.totalTasks,
+          streakDays: dashboard.streakDays,
+          color: orange,
         ),
       ],
     );
   }
+}
+
+class _StreakProgressArc extends StatelessWidget {
+  const _StreakProgressArc({
+    required this.completedTasks,
+    required this.totalTasks,
+    required this.streakDays,
+    required this.color,
+  });
+
+  final int completedTasks;
+  final int totalTasks;
+  final int streakDays;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    final safeTotal = totalTasks.clamp(0, 5).toInt();
+    final safeCompleted = completedTasks.clamp(0, safeTotal).toInt();
+    final progress = safeTotal == 0 ? 0.0 : safeCompleted / safeTotal;
+
+    return SizedBox(
+      width: 124,
+      height: 116,
+      child: Stack(
+        children: [
+          Positioned.fill(
+            child: CustomPaint(
+              painter: _StreakProgressArcPainter(
+                progress: progress,
+                color: color,
+              ),
+              child: Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Transform.translate(
+                      offset: const Offset(0, -6),
+                      child: Icon(
+                        Icons.local_fire_department_outlined,
+                        color: color,
+                        size: 35,
+                      ),
+                    ),
+                    Text(
+                      '$streakDays',
+                      style: const TextStyle(
+                        color: Colors.black,
+                        fontFamily: 'Jua',
+                        fontSize: 28,
+                        fontWeight: FontWeight.w400,
+                        height: 0.9,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          const Positioned(
+            left: 0,
+            right: 0,
+            bottom: 10,
+            child: Text(
+              '連続日数',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Color(0xff707078),
+                fontFamily: 'Noto Sans Japanese',
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                letterSpacing: 1,
+                height: 1,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _StreakProgressArcPainter extends CustomPainter {
+  const _StreakProgressArcPainter({
+    required this.progress,
+    required this.color,
+  });
+
+  final double progress;
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    const startAngle = 140 * math.pi / 180;
+    const sweepAngle = 260 * math.pi / 180;
+    final center = Offset(size.width / 2, size.height / 2 - 1);
+    final radius = math.min(size.width, size.height).toDouble() / 2 - 8;
+    final arcRect = Rect.fromCircle(center: center, radius: radius);
+    final trackPaint = Paint()
+      ..color = const Color(0xffe6e6eb)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 7
+      ..strokeCap = StrokeCap.round;
+    final progressPaint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 7
+      ..strokeCap = StrokeCap.round;
+
+    canvas.drawArc(arcRect, startAngle, sweepAngle, false, trackPaint);
+    if (progress > 0) {
+      canvas.drawArc(
+        arcRect,
+        startAngle,
+        sweepAngle * progress.clamp(0.0, 1.0).toDouble(),
+        false,
+        progressPaint,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _StreakProgressArcPainter oldDelegate) =>
+      oldDelegate.progress != progress ||
+      oldDelegate.color != color;
 }
 
 class _MonthlyStudyProgress extends StatelessWidget {

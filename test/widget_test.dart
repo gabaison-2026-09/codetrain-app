@@ -99,7 +99,9 @@ void main() {
     expect(find.text('5'), findsOneWidget);
     expect(find.text('/'), findsOneWidget);
     expect(find.text('8'), findsOneWidget);
-    expect(find.text('7 days'), findsOneWidget);
+    expect(find.byIcon(Icons.local_fire_department_outlined), findsOneWidget);
+    expect(find.text('7'), findsOneWidget);
+    expect(find.text('連続日数'), findsOneWidget);
     expect(find.byIcon(Icons.play_arrow_rounded), findsOneWidget);
     expect(find.text('TS'), findsOneWidget);
     expect(find.text('今月の勉強量'), findsOneWidget);
@@ -197,6 +199,10 @@ class _FakeHomeDashboardRepository implements HomeDashboardRepository {
         HomeStudyTask(languages: [HomeLanguage.typescript]),
         HomeStudyTask(languages: [HomeLanguage.csharp, HomeLanguage.ruby]),
       ],
+      taskProgress: const HomeTaskProgress(
+        completedTasks: 2,
+        totalTasks: 5,
+      ),
       monthlyProgress: const HomeMonthlyProgress(
         studiedDays: 16,
         maxDays: 30,

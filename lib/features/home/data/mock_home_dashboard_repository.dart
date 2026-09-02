@@ -23,6 +23,10 @@ class MockHomeDashboardRepository implements HomeDashboardRepository {
           languages: [HomeLanguage.csharp],
         ),
       ],
+      taskProgress: const HomeTaskProgress(
+        completedTasks: 3,
+        totalTasks: 5,
+      ),
       monthlyProgress: HomeMonthlyProgress(
         studiedDays: 16,
         maxDays: DateTime(now.year, now.month + 1, 0).day.clamp(1, 30).toInt(),
