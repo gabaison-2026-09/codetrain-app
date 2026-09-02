@@ -473,16 +473,74 @@
       "completed_at": null
     }
   ],
-  "progress": {
-    "xp": 120,
-    "level": 3,
-    "streak_days": 5,
-    "hearts": 4
+  "weekly_activity": [
+    {"date": "2026-08-30", "status": "completed"},
+    {"date": "2026-08-31", "status": "missed"},
+    {"date": "2026-09-01", "status": "completed"},
+    {"date": "2026-09-02", "status": "active"},
+    {"date": "2026-09-03", "status": "upcoming"},
+    {"date": "2026-09-04", "status": "upcoming"},
+    {"date": "2026-09-05", "status": "upcoming"}
+  ],
+  "recent_xp": [
+    {"date": "2026-08-04", "xp": 4},
+    {"date": "2026-08-05", "xp": 8},
+    {"date": "2026-08-06", "xp": 0},
+    {"date": "2026-08-07", "xp": 11},
+    {"date": "2026-08-08", "xp": 7},
+    {"date": "2026-08-09", "xp": 12},
+    {"date": "2026-08-10", "xp": 9},
+    {"date": "2026-08-11", "xp": 6},
+    {"date": "2026-08-12", "xp": 10},
+    {"date": "2026-08-13", "xp": 3},
+    {"date": "2026-08-14", "xp": 4},
+    {"date": "2026-08-15", "xp": 8},
+    {"date": "2026-08-16", "xp": 0},
+    {"date": "2026-08-17", "xp": 11},
+    {"date": "2026-08-18", "xp": 7},
+    {"date": "2026-08-19", "xp": 12},
+    {"date": "2026-08-20", "xp": 9},
+    {"date": "2026-08-21", "xp": 6},
+    {"date": "2026-08-22", "xp": 10},
+    {"date": "2026-08-23", "xp": 3},
+    {"date": "2026-08-24", "xp": 4},
+    {"date": "2026-08-25", "xp": 8},
+    {"date": "2026-08-26", "xp": 0},
+    {"date": "2026-08-27", "xp": 11},
+    {"date": "2026-08-28", "xp": 7},
+    {"date": "2026-08-29", "xp": 12},
+    {"date": "2026-08-30", "xp": 9},
+    {"date": "2026-08-31", "xp": 6},
+    {"date": "2026-09-01", "xp": 10},
+    {"date": "2026-09-02", "xp": 3}
+  ],
+  "monthly_progress": {
+    "studied_days": 16,
+    "max_days": 30
+  },
+  "study_tasks": [
+    {
+      "task_no": 1,
+      "languages": ["csharp", "typescript", "ruby"]
+    },
+    {
+      "task_no": 2,
+      "languages": ["typescript"]
+    }
+  ],
+  "review": {
+    "due_count": 12
   }
 }
 ```
 - `tasks` の要素数 = そのユーザーの `user_task` 設定スロット数（0〜5）。未設定なら空配列
 - 各タスクの `question` は割り当てられた問題のプレビュー（回答は `POST /v1/questions/{id}/attempts` で行う）
+- `weekly_activity` は `activity_date` の前後3日を含む7要素を日付順で返す。`status` は `completed`（学習済み）、`missed`（未学習）、`active`（当日）、`upcoming`（未来）に限定する。
+- `recent_xp` は `activity_date` を含む直近30日分を日付順で返す。`xp` はその日に獲得したXPの0以上の整数で、データがない日は0とする。ホームカード右側の表示値は、この30日分をクライアントで合計した値とする。
+- `monthly_progress` は当月の学習日数と進捗上限を返す。`max_days` は暦月の日数と30の小さい方とし、通常の2月は28、31日ある月は30とする。
+- `tasks` は個別の問題割当、`study_tasks` はホーム画面で切り替える学習タスク（その日に学習する言語のまとまり）を表す。`study_tasks` は `task_no` 順で返し、各タスクの `languages` をそのまま一つの言語アイコン列として表示する。
+- `study_tasks` の各要素は、タスク切り替え時に言語一覧をまとめて切り替えるための表示単位である。言語の追加枠はクライアントが表示する。
+- `review.due_count` は `/v1/srs/due` で取得できる復習期限到来問題の件数とする。復習画面では必要に応じて `/v1/srs/due` を呼び出す。
 
 **エラー**: `NO_AVAILABLE_QUESTION`（422。あるスロットの条件に合う未回答 `published` 問題が枯渇。フォールバック方針は [OPEN_ISSUES.md](OPEN_ISSUES.md) B-10 未確定のため、該当スロットを欠番として返す挙動も許容し実装時に確定する）
 
