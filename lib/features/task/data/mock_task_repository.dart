@@ -17,6 +17,7 @@ class MockTaskRepository implements TaskRepository {
     {
       'id': 'task-typescript-basics',
       'name': 'TypeScript 基礎',
+      'is_home_task': true,
       'slots': [
         {'slot_no': 1, 'question_type': 'code_reading', 'language': 'typescript', 'difficulty': null},
         {'slot_no': 2, 'question_type': 'output_prediction', 'language': '', 'difficulty': 2},
@@ -28,9 +29,33 @@ class MockTaskRepository implements TaskRepository {
     {
       'id': 'task-ruby-reading',
       'name': 'Ruby 読解',
+      'is_home_task': true,
       'slots': [
         {'slot_no': 1, 'question_type': 'code_reading', 'language': 'ruby', 'difficulty': 1},
         {'slot_no': 2, 'question_type': 'code_reading', 'language': 'ruby', 'difficulty': 2},
+        {'slot_no': 3},
+        {'slot_no': 4},
+        {'slot_no': 5},
+      ],
+    },
+    {
+      'id': 'task-csharp-basics',
+      'name': 'C# 基礎',
+      'is_home_task': true,
+      'slots': [
+        {'slot_no': 1, 'question_type': 'code_reading', 'language': 'csharp', 'difficulty': 1},
+        {'slot_no': 2, 'question_type': 'output_prediction', 'language': '', 'difficulty': 2},
+        {'slot_no': 3},
+        {'slot_no': 4},
+        {'slot_no': 5},
+      ],
+    },
+    {
+      'id': 'task-ruby-advanced',
+      'name': 'Ruby 応用',
+      'slots': [
+        {'slot_no': 1, 'question_type': 'code_reading', 'language': 'ruby', 'difficulty': 3},
+        {'slot_no': 2},
         {'slot_no': 3},
         {'slot_no': 4},
         {'slot_no': 5},
@@ -65,10 +90,19 @@ class MockTaskRepository implements TaskRepository {
             id: 'task-${_tasks.length + 1}',
             name: task.name,
             slots: task.slots,
+            isHomeTask: task.isHomeTask,
           )
         : task;
-    _tasks.removeWhere((current) => current.id == savedTask.id);
-    _tasks.add(savedTask);
+    if (task.id.isEmpty) {
+      _tasks.add(savedTask);
+    } else {
+      final index = _tasks.indexWhere((current) => current.id == savedTask.id);
+      if (index == -1) {
+        _tasks.add(savedTask);
+      } else {
+        _tasks[index] = savedTask;
+      }
+    }
     return savedTask;
   }
 

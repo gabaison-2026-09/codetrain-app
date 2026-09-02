@@ -12,6 +12,7 @@ import '../../learn/domain/learn_content.dart';
 import '../../learn/domain/learn_repository.dart';
 import '../../profile/presentation/profile_page.dart';
 import '../../task/presentation/task_page.dart';
+import '../../task/domain/task_launcher.dart';
 import '../../task/domain/task_repository.dart';
 import 'home_tab_page.dart';
 
@@ -20,6 +21,7 @@ class HomePage extends StatefulWidget {
     super.key,
     required this.topNavigationRepository,
     required this.homeRepository,
+    required this.taskLauncher,
     required this.learnRepository,
     required this.taskRepository,
     this.initialTopNavigationStatus,
@@ -29,6 +31,7 @@ class HomePage extends StatefulWidget {
 
   final TopNavigationRepository topNavigationRepository;
   final HomeDashboardRepository homeRepository;
+  final TaskLauncher taskLauncher;
   final LearnRepository learnRepository;
   final TaskRepository taskRepository;
   final TopNavigationStatus? initialTopNavigationStatus;
@@ -41,6 +44,7 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   late final List<Widget> _pages;
+  late final ValueNotifier<int> _taskSelectionVersion;
 
   int _selectedIndex = 2;
   var _isLearnQuestionViewVisible = false;
@@ -52,6 +56,7 @@ class _HomePageState extends State<HomePage> {
     super.initState();
     _topNavigationRepository = widget.topNavigationRepository;
     _topNavigationStatusFuture = _topNavigationRepository.fetchStatus();
+    _taskSelectionVersion = ValueNotifier(0);
     _pages = [
       const CalendarPage(),
       LearnPage(
@@ -64,11 +69,24 @@ class _HomePageState extends State<HomePage> {
       ),
       HomeTabPage(
         repository: widget.homeRepository,
+        taskRepository: widget.taskRepository,
+        taskLauncher: widget.taskLauncher,
+        taskSelectionVersion: _taskSelectionVersion,
         initialDashboard: widget.initialHomeDashboard,
       ),
-      TaskPage(repository: widget.taskRepository),
+      TaskPage(
+        repository: widget.taskRepository,
+        taskLauncher: widget.taskLauncher,
+        onTaskCatalogChanged: () => _taskSelectionVersion.value++,
+      ),
       const ProfilePage(),
     ];
+  }
+
+  @override
+  void dispose() {
+    _taskSelectionVersion.dispose();
+    super.dispose();
   }
 
   @override

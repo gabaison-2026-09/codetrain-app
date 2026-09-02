@@ -1,12 +1,20 @@
 import 'package:flutter/material.dart';
 
 import '../domain/task_configuration.dart';
+import '../domain/task_launcher.dart';
 import '../domain/task_repository.dart';
 
 class TaskPage extends StatefulWidget {
-  const TaskPage({super.key, required this.repository});
+  const TaskPage({
+    super.key,
+    required this.repository,
+    required this.taskLauncher,
+    this.onTaskCatalogChanged,
+  });
 
   final TaskRepository repository;
+  final TaskLauncher taskLauncher;
+  final VoidCallback? onTaskCatalogChanged;
 
   @override
   State<TaskPage> createState() => _TaskPageState();
@@ -17,6 +25,7 @@ class _TaskPageState extends State<TaskPage> {
   static const ink = Color(0xff222229);
   static const muted = Color(0xff777782);
   static const line = Color(0xffe3e3e9);
+  static const maxHomeTasks = 3;
 
   late final Future<TaskCatalog> _catalogFuture;
   TaskCatalog? _catalog;
@@ -48,7 +57,9 @@ class _TaskPageState extends State<TaskPage> {
     await widget.repository.saveTask(result.task);
     if (!mounted) return;
     final updated = await widget.repository.fetchCatalog();
-    if (mounted) setState(() => _catalog = updated);
+    if (!mounted) return;
+    setState(() => _catalog = updated);
+    widget.onTaskCatalogChanged?.call();
   }
 
   void _handleTaskTap(LearningTask task) {
@@ -66,6 +77,7 @@ class _TaskPageState extends State<TaskPage> {
       _catalog = updated;
       _expandedTaskId = null;
     });
+    widget.onTaskCatalogChanged?.call();
   }
 
   Future<void> _handleDeleteTask(String taskId) async {
@@ -77,6 +89,47 @@ class _TaskPageState extends State<TaskPage> {
       _catalog = updated;
       _expandedTaskId = null;
     });
+    widget.onTaskCatalogChanged?.call();
+  }
+
+  Future<void> _handleToggleHomeTask(LearningTask task) async {
+    final catalog = _catalog;
+    if (catalog == null) return;
+    final homeTaskCount =
+        catalog.tasks.where((task) => task.isHomeTask).length;
+    if (!task.isHomeTask && homeTaskCount >= maxHomeTasks) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('ホームで開始できるタスクは3つまでです。')),
+      );
+      return;
+    }
+
+    await widget.repository.saveTask(
+      task.copyWith(isHomeTask: !task.isHomeTask),
+    );
+    if (!mounted) return;
+    final updated = await widget.repository.fetchCatalog();
+    if (!mounted) return;
+    setState(() => _catalog = updated);
+    widget.onTaskCatalogChanged?.call();
+  }
+
+  Future<void> _handleStartTask(LearningTask task) async {
+    try {
+      await widget.taskLauncher.start(
+        TaskLaunchTarget(name: task.name, taskId: task.id),
+      );
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('${task.name} を開始します。')),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('タスクを開始できませんでした。')),
+      );
+    }
   }
 
   @override
@@ -93,6 +146,8 @@ class _TaskPageState extends State<TaskPage> {
             final bottomScale = (constraints.maxWidth / 973).clamp(0.32, 1.0);
             final bottomHeight = 325 * bottomScale + mediaPadding.bottom;
             final tasks = catalog.tasks;
+            final homeTaskCount =
+                tasks.where((task) => task.isHomeTask).length;
             return SingleChildScrollView(
               padding: EdgeInsets.fromLTRB(
                 22,
@@ -131,13 +186,24 @@ class _TaskPageState extends State<TaskPage> {
                           ),
                         ],
                       ),
-                      const SizedBox(height: 28),
+                      const SizedBox(height: 8),
+                      Text(
+                        'ホームで開始するタスク  $homeTaskCount / $maxHomeTasks',
+                        style: const TextStyle(
+                          color: muted,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 18),
                       const Divider(height: 1, color: line),
                       for (final task in tasks) ...[
                         _TaskRow(
                           task: task,
                           isExpanded: _expandedTaskId == task.id,
                           onTap: () => _handleTaskTap(task),
+                          onStartTask: () => _handleStartTask(task),
+                          onHomeTaskToggle: () => _handleToggleHomeTask(task),
                         ),
                         AnimatedSize(
                           duration: const Duration(milliseconds: 220),
@@ -182,59 +248,107 @@ class _TaskRow extends StatelessWidget {
     required this.task,
     required this.isExpanded,
     required this.onTap,
+    required this.onStartTask,
+    required this.onHomeTaskToggle,
   });
 
   final LearningTask task;
   final bool isExpanded;
   final VoidCallback onTap;
+  final VoidCallback onStartTask;
+  final VoidCallback onHomeTaskToggle;
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      key: ValueKey('task-${task.id}'),
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 20),
-        decoration: const BoxDecoration(
-          border: Border(bottom: BorderSide(color: _TaskPageState.line)),
-        ),
-        child: Row(
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      decoration: const BoxDecoration(
+        border: Border(bottom: BorderSide(color: _TaskPageState.line)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          InkWell(
+            key: ValueKey('task-${task.id}'),
+            onTap: onTap,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              child: Row(
                 children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          task.name,
+                          style: const TextStyle(
+                            color: _TaskPageState.ink,
+                            fontFamily: 'Noto Sans Japanese',
+                            fontSize: 17,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        _SlotIndicator(slots: task.slots),
+                      ],
+                    ),
+                  ),
                   Text(
-                    task.name,
+                    '${task.configuredSlotCount} / 5',
                     style: const TextStyle(
-                      color: _TaskPageState.ink,
-                      fontFamily: 'Noto Sans Japanese',
-                      fontSize: 17,
+                      color: _TaskPageState.muted,
+                      fontSize: 13,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
-                  const SizedBox(height: 10),
-                  _SlotIndicator(slots: task.slots),
+                  const SizedBox(width: 7),
+                  Icon(
+                    isExpanded
+                        ? Icons.expand_less_rounded
+                        : Icons.expand_more_rounded,
+                    color: _TaskPageState.muted,
+                  ),
                 ],
               ),
             ),
-            Text(
-              '${task.configuredSlotCount} / 5',
-              style: const TextStyle(
-                color: _TaskPageState.muted,
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-              ),
+          ),
+          Align(
+            alignment: Alignment.centerRight,
+            child: Wrap(
+              spacing: 4,
+              children: [
+                TextButton.icon(
+                  key: ValueKey('task-start-button-${task.id}'),
+                  onPressed: onStartTask,
+                  style: TextButton.styleFrom(
+                    foregroundColor: _TaskPageState.purple,
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    minimumSize: const Size(0, 40),
+                  ),
+                  icon: const Icon(Icons.play_arrow_rounded, size: 19),
+                  label: const Text('開始'),
+                ),
+                TextButton.icon(
+                  key: ValueKey('task-home-toggle-${task.id}'),
+                  onPressed: onHomeTaskToggle,
+                  style: TextButton.styleFrom(
+                    foregroundColor: task.isHomeTask
+                        ? _TaskPageState.purple
+                        : _TaskPageState.muted,
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    minimumSize: const Size(0, 40),
+                  ),
+                  icon: Icon(
+                    task.isHomeTask
+                        ? Icons.check_circle_outline_rounded
+                        : Icons.add_circle_outline_rounded,
+                  ),
+                  label: Text(task.isHomeTask ? '登録済み' : 'ホームに登録'),
+                ),
+              ],
             ),
-            const SizedBox(width: 7),
-            Icon(
-              isExpanded
-                  ? Icons.expand_less_rounded
-                  : Icons.expand_more_rounded,
-              color: _TaskPageState.muted,
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

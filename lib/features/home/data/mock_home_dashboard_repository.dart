@@ -10,6 +10,9 @@ class MockHomeDashboardRepository implements HomeDashboardRepository {
       streakDays: 18,
       studyTasks: const [
         HomeStudyTask(
+          id: 'task-csharp-typescript-ruby',
+          name: 'C#・TypeScript・Ruby',
+          taskNo: 1,
           languages: [
             HomeLanguage.csharp,
             HomeLanguage.typescript,
@@ -17,9 +20,15 @@ class MockHomeDashboardRepository implements HomeDashboardRepository {
           ],
         ),
         HomeStudyTask(
+          id: 'task-typescript-ruby',
+          name: 'TypeScript・Ruby',
+          taskNo: 2,
           languages: [HomeLanguage.typescript, HomeLanguage.ruby],
         ),
         HomeStudyTask(
+          id: 'task-csharp',
+          name: 'C# 基礎',
+          taskNo: 3,
           languages: [HomeLanguage.csharp],
         ),
       ],

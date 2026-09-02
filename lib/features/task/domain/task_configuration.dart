@@ -40,11 +40,27 @@ class LearningTask {
     required this.id,
     required this.name,
     required this.slots,
+    this.isHomeTask = false,
   });
 
   final String id;
   final String name;
   final List<TaskSlot> slots;
+  final bool isHomeTask;
+
+  LearningTask copyWith({
+    String? id,
+    String? name,
+    List<TaskSlot>? slots,
+    bool? isHomeTask,
+  }) {
+    return LearningTask(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      slots: slots ?? this.slots,
+      isHomeTask: isHomeTask ?? this.isHomeTask,
+    );
+  }
 
   int get configuredSlotCount =>
       slots.where((slot) => slot.isConfigured).length;

@@ -37,12 +37,14 @@ class LearningTaskDto {
     required this.id,
     required this.name,
     required this.slots,
+    required this.isHomeTask,
   });
 
   factory LearningTaskDto.fromJson(Map<String, Object?> json) {
     return LearningTaskDto(
       id: json['id']! as String,
       name: json['name']! as String,
+      isHomeTask: json['is_home_task'] as bool? ?? false,
       slots: (json['slots']! as List<Object?>)
           .cast<Map<String, Object?>>()
           .map(TaskSlotDto.fromJson)
@@ -52,11 +54,13 @@ class LearningTaskDto {
 
   final String id;
   final String name;
+  final bool isHomeTask;
   final List<TaskSlotDto> slots;
 
   LearningTask toDomain() => LearningTask(
         id: id,
         name: name,
+        isHomeTask: isHomeTask,
         slots: slots.map((slot) => slot.toDomain()).toList(),
       );
 }

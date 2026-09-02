@@ -1,19 +1,29 @@
 import 'dart:math' as math;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../domain/home_dashboard.dart';
 import '../domain/home_dashboard_repository.dart';
+import '../../task/domain/task_configuration.dart';
+import '../../task/domain/task_launcher.dart';
+import '../../task/domain/task_repository.dart';
 
 class HomeTabPage extends StatefulWidget {
   const HomeTabPage({
     super.key,
     required this.repository,
+    required this.taskRepository,
+    required this.taskLauncher,
+    this.taskSelectionVersion,
     this.initialDashboard,
   });
 
   final HomeDashboardRepository repository;
+  final TaskRepository taskRepository;
+  final TaskLauncher taskLauncher;
+  final ValueListenable<int>? taskSelectionVersion;
   final HomeDashboard? initialDashboard;
 
   @override
@@ -23,12 +33,28 @@ class HomeTabPage extends StatefulWidget {
 class _HomeTabPageState extends State<HomeTabPage> {
   late final HomeDashboardRepository _repository;
   late final Future<HomeDashboard> _dashboardFuture;
+  late Future<TaskCatalog> _taskCatalogFuture;
 
   @override
   void initState() {
     super.initState();
     _repository = widget.repository;
     _dashboardFuture = _repository.fetchDashboard();
+    _taskCatalogFuture = widget.taskRepository.fetchCatalog();
+    widget.taskSelectionVersion?.addListener(_handleTaskSelectionChanged);
+  }
+
+  @override
+  void dispose() {
+    widget.taskSelectionVersion?.removeListener(_handleTaskSelectionChanged);
+    super.dispose();
+  }
+
+  void _handleTaskSelectionChanged() {
+    if (!mounted) return;
+    setState(() {
+      _taskCatalogFuture = widget.taskRepository.fetchCatalog();
+    });
   }
 
   @override
@@ -41,16 +67,65 @@ class _HomeTabPageState extends State<HomeTabPage> {
         if (dashboard == null) {
           return const SizedBox.shrink();
         }
-        return _HomeDashboardView(dashboard: dashboard);
+        return FutureBuilder<TaskCatalog>(
+          future: _taskCatalogFuture,
+          builder: (context, taskSnapshot) {
+            final configuredTasks = taskSnapshot.data?.tasks
+                .where((task) => task.isHomeTask)
+                .take(3)
+                .toList();
+            final selectedTasks = configuredTasks == null
+                ? dashboard.studyTasks
+                : [
+                    for (var index = 0; index < configuredTasks.length; index++)
+                      _toHomeStudyTask(
+                        configuredTasks[index],
+                        taskNo: index + 1,
+                      ),
+                  ];
+            return _HomeDashboardView(
+              dashboard: dashboard,
+              taskLauncher: widget.taskLauncher,
+              studyTasks: selectedTasks,
+            );
+          },
+        );
       },
     );
   }
 }
 
+HomeStudyTask _toHomeStudyTask(LearningTask task, {required int taskNo}) {
+  final languages = <HomeLanguage>[];
+  for (final slot in task.slots) {
+    final language = switch (slot.language) {
+      'csharp' => HomeLanguage.csharp,
+      'typescript' => HomeLanguage.typescript,
+      'ruby' => HomeLanguage.ruby,
+      _ => null,
+    };
+    if (language != null && !languages.contains(language)) {
+      languages.add(language);
+    }
+  }
+  return HomeStudyTask(
+    id: task.id,
+    name: task.name,
+    taskNo: taskNo,
+    languages: List.unmodifiable(languages),
+  );
+}
+
 class _HomeDashboardView extends StatefulWidget {
-  const _HomeDashboardView({required this.dashboard});
+  const _HomeDashboardView({
+    required this.dashboard,
+    required this.taskLauncher,
+    required this.studyTasks,
+  });
 
   final HomeDashboard dashboard;
+  final TaskLauncher taskLauncher;
+  final List<HomeStudyTask> studyTasks;
 
   @override
   State<_HomeDashboardView> createState() => _HomeDashboardViewState();
@@ -65,7 +140,7 @@ class _HomeDashboardViewState extends State<_HomeDashboardView> {
   static const _taskColors = [_purple, Color(0xff3f8f9d), Color(0xff8c5aa8)];
 
   HomeStudyTask get _selectedTask {
-    final tasks = widget.dashboard.studyTasks;
+    final tasks = widget.studyTasks;
     if (tasks.isEmpty) {
       return const HomeStudyTask(languages: []);
     }
@@ -79,7 +154,7 @@ class _HomeDashboardViewState extends State<_HomeDashboardView> {
   @override
   void didUpdateWidget(covariant _HomeDashboardView oldWidget) {
     super.didUpdateWidget(oldWidget);
-    final taskCount = widget.dashboard.studyTasks.length;
+    final taskCount = widget.studyTasks.length;
     if (taskCount == 0) {
       _selectedTaskIndex = 0;
     } else if (_selectedTaskIndex >= taskCount) {
@@ -89,7 +164,7 @@ class _HomeDashboardViewState extends State<_HomeDashboardView> {
 
   void _handleTaskSwipe(DragEndDetails details) {
     final velocity = details.primaryVelocity;
-    final taskCount = widget.dashboard.studyTasks.length;
+    final taskCount = widget.studyTasks.length;
     if (velocity == null || velocity.abs() < 100 || taskCount < 2) {
       return;
     }
@@ -103,10 +178,34 @@ class _HomeDashboardViewState extends State<_HomeDashboardView> {
     });
   }
 
+  Future<void> _handleStartSelectedTask() async {
+    final task = _selectedTask;
+    if (task.id.isEmpty && task.taskNo == null) return;
+    try {
+      await widget.taskLauncher.start(
+        TaskLaunchTarget(
+          name: task.name,
+          taskId: task.id,
+          taskNo: task.taskNo,
+        ),
+      );
+      if (!mounted) return;
+      HapticFeedback.mediumImpact();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('${task.name} を開始します。')),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('タスクを開始できませんでした。')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final dashboard = widget.dashboard;
-    final tasks = dashboard.studyTasks;
+    final tasks = widget.studyTasks;
     return LayoutBuilder(
       builder: (context, constraints) {
         final horizontalPadding = (constraints.maxWidth * 0.024).clamp(
@@ -161,6 +260,7 @@ class _HomeDashboardViewState extends State<_HomeDashboardView> {
                       child: _PlayButton(
                         key: ValueKey('home-play-task-$_selectedTaskIndex'),
                         color: _selectedTaskColor,
+                        onPressed: _handleStartSelectedTask,
                       ),
                     ),
                     if (tasks.length > 1) ...[
@@ -190,6 +290,7 @@ class _HomeDashboardViewState extends State<_HomeDashboardView> {
                       },
                       child: _ProgramRow(
                         key: ValueKey('home-programs-task-$_selectedTaskIndex'),
+                        taskName: _selectedTask.name,
                         languages: _selectedTask.languages,
                       ),
                     ),
@@ -553,9 +654,14 @@ class _MonthlyStudyProgressPainter extends CustomPainter {
 }
 
 class _PlayButton extends StatefulWidget {
-  const _PlayButton({super.key, required this.color});
+  const _PlayButton({
+    super.key,
+    required this.color,
+    required this.onPressed,
+  });
 
   final Color color;
+  final VoidCallback onPressed;
 
   @override
   State<_PlayButton> createState() => _PlayButtonState();
@@ -636,41 +742,44 @@ class _PlayButtonState extends State<_PlayButton>
   @override
   Widget build(BuildContext context) {
     final color = widget.color;
-    return Center(
-      child: SizedBox.square(
-        dimension: 278,
-        child: AnimatedBuilder(
-          animation: _rotationController,
-          child: Center(
-            child: SizedBox.square(
-              dimension: 254,
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  shape: BoxShape.circle,
-                  border: Border.fromBorderSide(
-                    BorderSide(color: color, width: 9),
+    return GestureDetector(
+      onTap: widget.onPressed,
+      child: Center(
+        child: SizedBox.square(
+          dimension: 278,
+          child: AnimatedBuilder(
+            animation: _rotationController,
+            child: Center(
+              child: SizedBox.square(
+                dimension: 254,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    shape: BoxShape.circle,
+                    border: Border.fromBorderSide(
+                      BorderSide(color: color, width: 9),
+                    ),
                   ),
-                ),
-                child: Center(
-                  child: Icon(
-                    Icons.play_arrow_rounded,
-                    color: color,
-                    size: 210,
+                  child: Center(
+                    child: Icon(
+                      Icons.play_arrow_rounded,
+                      color: color,
+                      size: 210,
+                    ),
                   ),
                 ),
               ),
             ),
+            builder: (context, child) {
+              return CustomPaint(
+                painter: _PlayButtonDecorationPainter(
+                  rotation: _rotationController.value * math.pi * 2,
+                  color: color,
+                ),
+                child: child,
+              );
+            },
           ),
-          builder: (context, child) {
-            return CustomPaint(
-              painter: _PlayButtonDecorationPainter(
-                rotation: _rotationController.value * math.pi * 2,
-                color: color,
-              ),
-              child: child,
-            );
-          },
         ),
       ),
     );
@@ -722,19 +831,41 @@ class _PlayButtonDecorationPainter extends CustomPainter {
 }
 
 class _ProgramRow extends StatelessWidget {
-  const _ProgramRow({super.key, required this.languages});
+  const _ProgramRow({
+    super.key,
+    required this.taskName,
+    required this.languages,
+  });
 
+  final String taskName;
   final List<HomeLanguage> languages;
 
   @override
   Widget build(BuildContext context) {
-    return Wrap(
-      alignment: WrapAlignment.center,
-      spacing: 23,
-      runSpacing: 12,
+    return Column(
       children: [
-        for (final language in languages) ...[_ProgramIcon(language: language)],
-        const _AddProgramButton(),
+        if (taskName.isNotEmpty) ...[
+          Text(
+            taskName,
+            style: const TextStyle(
+              color: Color(0xff222229),
+              fontFamily: 'Noto Sans Japanese',
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 12),
+        ],
+        Wrap(
+          alignment: WrapAlignment.center,
+          spacing: 23,
+          runSpacing: 12,
+          children: [
+            for (final language in languages)
+              _ProgramIcon(language: language),
+            const _AddProgramButton(),
+          ],
+        ),
       ],
     );
   }
