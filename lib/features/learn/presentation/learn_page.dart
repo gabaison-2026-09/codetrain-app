@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -24,8 +26,16 @@ class LearnPage extends StatefulWidget {
 }
 
 class _LearnPageState extends State<LearnPage> {
+  static const _feedbackMessages = <String>[
+    'おつかれさま！',
+    'いい感じです',
+    'ナイスチャレンジ！',
+    'この調子でいこう！',
+    'しっかり身についています',
+  ];
   static const _feedbackInterval = 5;
 
+  final _random = Random();
   late final Future<LearnCatalog> _catalogFuture;
   String? _selectedNodeId;
   List<LearnQuestion>? _questions;
@@ -35,6 +45,7 @@ class _LearnPageState extends State<LearnPage> {
   var _questionReviews = <LearnQuestionReview>[];
   var _answeredQuestionCount = 0;
   var _correctAnswerCount = 0;
+  var _feedbackMessage = _feedbackMessages.first;
   var _isShowingFeedback = false;
   DateTime? _questionStartedAt;
   var _isLoadingQuestions = false;
@@ -78,6 +89,7 @@ class _LearnPageState extends State<LearnPage> {
         _questionReviews = [];
         _answeredQuestionCount = 0;
         _correctAnswerCount = 0;
+        _feedbackMessage = _feedbackMessages.first;
         _isShowingFeedback = false;
         _questionStartedAt = DateTime.now();
         _isLoadingQuestions = false;
@@ -151,7 +163,11 @@ class _LearnPageState extends State<LearnPage> {
     if (questions == null) return;
     if (_answeredQuestionCount == _feedbackInterval) {
       HapticFeedback.selectionClick();
-      setState(() => _isShowingFeedback = true);
+      setState(() {
+        _feedbackMessage =
+            _feedbackMessages[_random.nextInt(_feedbackMessages.length)];
+        _isShowingFeedback = true;
+      });
       widget.onQuestionViewChanged?.call(false);
       return;
     }
@@ -221,6 +237,7 @@ class _LearnPageState extends State<LearnPage> {
             return LearnFeedbackView(
               correctAnswerCount: _correctAnswerCount,
               questionCount: _feedbackInterval,
+              message: _feedbackMessage,
               reviews: _questionReviews,
               contentPadding: contentPadding,
               onBackToList: _handleBackToList,

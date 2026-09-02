@@ -347,7 +347,7 @@ void main() {
     }
 
     expect(find.byKey(const ValueKey('learn-feedback')), findsOneWidget);
-    expect(find.text('5問のフィードバック'), findsOneWidget);
+    expect(find.byKey(const ValueKey('learn-feedback-message')), findsOneWidget);
     expect(
       find.byKey(const ValueKey('learn-review-question-arrays-1')),
       findsOneWidget,

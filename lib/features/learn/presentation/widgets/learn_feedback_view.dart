@@ -7,6 +7,7 @@ class LearnFeedbackView extends StatelessWidget {
     super.key,
     required this.correctAnswerCount,
     required this.questionCount,
+    required this.message,
     required this.reviews,
     required this.contentPadding,
     required this.onBackToList,
@@ -15,6 +16,7 @@ class LearnFeedbackView extends StatelessWidget {
 
   final int correctAnswerCount;
   final int questionCount;
+  final String message;
   final List<LearnQuestionReview> reviews;
   final EdgeInsets contentPadding;
   final VoidCallback onBackToList;
@@ -40,8 +42,9 @@ class LearnFeedbackView extends StatelessWidget {
                   size: 42,
                 ),
                 const SizedBox(height: 18),
-                const Text(
-                  '5問のフィードバック',
+                Text(
+                  key: const ValueKey('learn-feedback-message'),
+                  message,
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     color: Color(0xff111116),
