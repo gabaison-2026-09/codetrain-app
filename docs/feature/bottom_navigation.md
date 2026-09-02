@@ -3,7 +3,7 @@
 ## 仕様
 
 - ホーム画面の下部にボトムナビゲーションを表示する。
-- Calendar、Learn、Home、Task、Profile の5つのタブを表示する。
+- Calendar、Learn、Home、Task、Friend の5つのタブを表示する。
 - タップした位置に最も近いタブを選択し、選択状態の移動アニメーションを表示する。
 - 選択したタブに対応する画面へ切り替え、現在の画面が分かるタイトルを表示する。
 - 画面切り替え時は、260msのフェードと小さな横スライドで遷移する。逆方向の終了アニメーションは180msとする。
@@ -18,11 +18,11 @@
 - Learn画面: `lib/features/learn/presentation/learn_page.dart`
 - Home画面: `lib/features/home/presentation/home_tab_page.dart`
 - Task画面: `lib/features/task/presentation/task_page.dart`
-- Profile画面: `lib/features/profile/presentation/profile_page.dart`
+- Friend画面: `lib/features/friend/presentation/friend_page.dart`
 
 ## 実装状況
 
-既存のボトムナビゲーションの描画、タブ選択、アニメーションおよびレイアウト挙動を維持したまま、タブ選択通知を追加している。`HomePage` は通知を受けて `AnimatedSwitcher` で表示画面を切り替え、各タブは独立した Page Widget として実装している。選択中タブの拡大円は、トレイに付いている間は白で表示し、はじけて分離した瞬間に Calendar は淡い青、Learn は淡い黄、Home は淡い緑、Task は淡い紫、Profile は淡い桃色へ切り替える。分離後の輪郭線には、それぞれ同系色の少し濃い色を使用している。円の分離タイミングでは、軽いインパクトの触覚フィードバックを1回発生させる。
+既存のボトムナビゲーションの描画、タブ選択、アニメーションおよびレイアウト挙動を維持したまま、タブ選択通知を追加している。`HomePage` は通知を受けて `AnimatedSwitcher` で表示画面を切り替え、各タブは独立した Page Widget として実装している。選択中タブの拡大円は、トレイに付いている間は白で表示し、はじけて分離した瞬間に Calendar は淡い青、Learn は淡い黄、Home は淡い緑、Task は淡い紫、Friend は淡い桃色へ切り替える。分離後の輪郭線には、それぞれ同系色の少し濃い色を使用している。円の分離タイミングでは、軽いインパクトの触覚フィードバックを1回発生させる。右端タブは `Profile` から `Friend` へ変更し、2人を表すアイコンを表示している。
 
 ## アニメーション方針
 

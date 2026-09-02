@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:codetrain_app/app/app.dart';
+import 'package:codetrain_app/features/friend/data/friend_user_dto.dart';
+import 'package:codetrain_app/features/friend/data/mock_friend_repository.dart';
+import 'package:codetrain_app/features/friend/domain/friend_user.dart';
 import 'package:codetrain_app/features/home/domain/home_dashboard.dart';
 import 'package:codetrain_app/features/home/domain/home_dashboard_repository.dart';
 import 'package:codetrain_app/features/home/data/me_response_dto.dart';
@@ -96,6 +99,7 @@ void main() {
         home: HomePage(
           topNavigationRepository: const MockTopNavigationRepository(),
           homeRepository: _FakeHomeDashboardRepository(),
+          friendRepository: MockFriendRepository(),
           taskLauncher: const MockTaskLauncher(),
           learnRepository: const MockLearnRepository(),
           taskRepository: MockTaskRepository(),
@@ -131,6 +135,7 @@ void main() {
         home: HomePage(
           topNavigationRepository: const MockTopNavigationRepository(),
           homeRepository: _FakeHomeDashboardRepository(),
+          friendRepository: MockFriendRepository(),
           taskLauncher: const MockTaskLauncher(),
           learnRepository: const MockLearnRepository(),
           taskRepository: MockTaskRepository(),
@@ -155,7 +160,7 @@ void main() {
     expect(find.text('TS'), findsNothing);
   });
 
-  testWidgets('profile selection animation can be completed', (
+  testWidgets('friend selection animation can be completed', (
     WidgetTester tester,
   ) async {
     await tester.pumpWidget(const CodeTrainApp());
@@ -184,7 +189,7 @@ void main() {
       (index: 1, label: 'Learn'),
       (index: 2, label: 'Home'),
       (index: 3, label: 'Task'),
-      (index: 4, label: 'Profile'),
+      (index: 4, label: 'Friend'),
     ];
     const tabCenterXs = <double>[118, 302, 483, 668, 851];
 
@@ -213,6 +218,10 @@ void main() {
         expect(find.text('すべて'), findsNothing);
         expect(find.text('コード読解'), findsNothing);
         expect(find.text('出力予測'), findsNothing);
+      } else if (tab.index == 4) {
+        expect(find.text('フレンド'), findsWidgets);
+        expect(find.byKey(const ValueKey('friend-open-search')), findsOneWidget);
+        expect(find.byKey(const ValueKey('friend-search-field')), findsNothing);
       } else {
         expect(find.text(tab.label), findsOneWidget);
         expect(find.text('${tab.label} screen'), findsOneWidget);
@@ -247,6 +256,114 @@ void main() {
       ],
     }).toDomain();
     expect(task.isHomeTask, isTrue);
+  });
+
+  test('friend DTO maps the public user fields and relationship', () {
+    final user = FriendUserDto.fromJson({
+      'id': 'user-1',
+      'user_code': 'sora_js',
+      'display_name': 'Sora',
+      'avatar_url': null,
+      'relationship': 'incoming_request',
+    }).toDomain();
+
+    expect(user.userCode, 'sora_js');
+    expect(user.displayName, 'Sora');
+    expect(user.relationship, FriendRelationship.incomingRequest);
+    expect(user.streakDays, 0);
+  });
+
+  test('friend repository applies request and relationship actions', () async {
+    final repository = MockFriendRepository();
+
+    await repository.cancelRequest('user-mio');
+    expect(
+      await repository.fetchUsers(filter: FriendFilter.outgoing),
+      isEmpty,
+    );
+
+    await repository.declineRequest('user-yui');
+    final incoming = await repository.fetchUsers(filter: FriendFilter.incoming);
+    expect(incoming.map((user) => user.id), isNot(contains('user-yui')));
+
+    await repository.removeFriend('user-aoi');
+    final friends = await repository.fetchUsers(filter: FriendFilter.friends);
+    expect(friends.map((user) => user.id), isNot(contains('user-aoi')));
+
+    await repository.sendRequest('user-haru');
+    final outgoing = await repository.fetchUsers(filter: FriendFilter.outgoing);
+    expect(outgoing.map((user) => user.id), contains('user-haru'));
+
+    expect((await repository.searchUserByCode('kai_backend'))?.id, 'user-kai');
+    expect(await repository.searchUserByCode('KAI_BACKEND'), isNull);
+  });
+
+  testWidgets('friend screen filters, accepts, searches, and sends requests', (
+    WidgetTester tester,
+  ) async {
+    tester.view.physicalSize = const Size(800, 1200);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    await tester.pumpWidget(const CodeTrainApp());
+
+    final navigation = find.byType(CodeTrainBottomNavigation);
+    final navigationRect = tester.getRect(navigation);
+    await tester.tapAt(
+      Offset(
+        navigationRect.left + navigationRect.width * 851 / 973,
+        navigationRect.center.dy,
+      ),
+    );
+    await tester.pump(const Duration(milliseconds: 600));
+
+    expect(find.byKey(const ValueKey('friend-user-user-aoi')), findsOneWidget);
+    expect(find.byKey(const ValueKey('friend-user-user-sora')), findsNothing);
+    expect(find.text('18日'), findsOneWidget);
+    expect(find.byKey(const ValueKey('friend-menu-user-aoi')), findsOneWidget);
+    expect(find.text('解除'), findsNothing);
+
+    await tester.tap(find.byKey(const ValueKey('friend-menu-user-aoi')));
+    await tester.pumpAndSettle();
+    expect(find.text('フレンド解除'), findsOneWidget);
+    await tester.tapAt(const Offset(10, 10));
+    await tester.pumpAndSettle();
+
+    await tester.tap(
+      find.byKey(const ValueKey('friend-filter-incoming')),
+    );
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('friend-user-user-sora')), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('friend-accept-user-sora')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('friend-user-user-sora')), findsNothing);
+
+    await tester.tap(find.byKey(const ValueKey('friend-open-search')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('friend-search-field')), findsOneWidget);
+
+    await tester.enterText(
+      find.byKey(const ValueKey('friend-search-field')),
+      'kai_backend',
+    );
+    await tester.tap(find.byKey(const ValueKey('friend-search-button')));
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const ValueKey('friend-search-result-user-kai')),
+      findsOneWidget,
+    );
+    expect(find.byKey(const ValueKey('friend-send-user-kai')), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('friend-send-user-kai')));
+    await tester.pumpAndSettle();
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('friend-search-result-user-kai')),
+        matching: find.text('申請中'),
+      ),
+      findsOneWidget,
+    );
   });
 
   test('updating a task keeps its position in the catalog', () async {

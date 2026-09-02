@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../friend/domain/friend_repository.dart';
+import '../../friend/presentation/friend_page.dart';
 import '../domain/home_dashboard.dart';
 import '../domain/home_dashboard_repository.dart';
 import '../domain/top_navigation_repository.dart';
@@ -10,7 +12,6 @@ import '../../calendar/presentation/calendar_page.dart';
 import '../../learn/presentation/learn_page.dart';
 import '../../learn/domain/learn_content.dart';
 import '../../learn/domain/learn_repository.dart';
-import '../../profile/presentation/profile_page.dart';
 import '../../task/presentation/task_page.dart';
 import '../../task/domain/task_launcher.dart';
 import '../../task/domain/task_repository.dart';
@@ -21,6 +22,7 @@ class HomePage extends StatefulWidget {
     super.key,
     required this.topNavigationRepository,
     required this.homeRepository,
+    required this.friendRepository,
     required this.taskLauncher,
     required this.learnRepository,
     required this.taskRepository,
@@ -31,6 +33,7 @@ class HomePage extends StatefulWidget {
 
   final TopNavigationRepository topNavigationRepository;
   final HomeDashboardRepository homeRepository;
+  final FriendRepository friendRepository;
   final TaskLauncher taskLauncher;
   final LearnRepository learnRepository;
   final TaskRepository taskRepository;
@@ -79,7 +82,7 @@ class _HomePageState extends State<HomePage> {
         taskLauncher: widget.taskLauncher,
         onTaskCatalogChanged: () => _taskSelectionVersion.value++,
       ),
-      const ProfilePage(),
+      FriendPage(repository: widget.friendRepository),
     ];
   }
 
