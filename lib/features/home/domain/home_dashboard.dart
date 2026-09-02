@@ -1,4 +1,4 @@
-enum HomeDayStatus { completed, active, upcoming }
+enum HomeDayStatus { completed, missed, active, upcoming }
 
 enum HomeProgram { csharp, typescript, ruby }
 

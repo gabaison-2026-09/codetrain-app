@@ -16,8 +16,8 @@
 - 表示データは `TopNavigationStatus` に集約し、Widget は表示用の値だけを受け取る。
 - `TopNavigationRepository` をデータ取得の境界とし、現在は `MockTopNavigationRepository` を使用する。
 - `HomePage` に Repository を注入できるため、バックエンド接続時は API 取得用の実装を渡す。
-- バックエンド接続時のデータ元は `GET /v1/me` の `progress`（`xp`、`level`、`hearts`）を使用する。
-- `experienceProgress` とハート上限は現 API 設計で未定義のため、DTO から表示モデルへ変換する境界で補助値として扱う。
+- バックエンド接続時のデータ元は、全画面共通データである `GET /v1/me` の `progress`（`xp`、`level`、`hearts`、`max_hearts`、`experience_progress`）を使用する。
+- `progress` はアプリ起動時に取得して共有し、画面ごとに重複取得しない。
 
 ## 構成
 

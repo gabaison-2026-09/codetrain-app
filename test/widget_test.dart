@@ -89,6 +89,7 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         home: HomePage(
+          topNavigationRepository: const MockTopNavigationRepository(),
           homeRepository: _FakeHomeDashboardRepository(),
         ),
       ),

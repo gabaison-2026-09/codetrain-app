@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../data/mock_top_navigation_repository.dart';
+import '../domain/home_dashboard.dart';
 import '../domain/home_dashboard_repository.dart';
 import '../domain/top_navigation_repository.dart';
 import '../domain/top_navigation_status.dart';
@@ -15,12 +15,16 @@ import 'home_tab_page.dart';
 class HomePage extends StatefulWidget {
   const HomePage({
     super.key,
-    this.topNavigationRepository,
-    this.homeRepository,
+    required this.topNavigationRepository,
+    required this.homeRepository,
+    this.initialTopNavigationStatus,
+    this.initialHomeDashboard,
   });
 
-  final TopNavigationRepository? topNavigationRepository;
-  final HomeDashboardRepository? homeRepository;
+  final TopNavigationRepository topNavigationRepository;
+  final HomeDashboardRepository homeRepository;
+  final TopNavigationStatus? initialTopNavigationStatus;
+  final HomeDashboard? initialHomeDashboard;
 
   @override
   State<HomePage> createState() => _HomePageState();
@@ -36,13 +40,15 @@ class _HomePageState extends State<HomePage> {
   @override
   void initState() {
     super.initState();
-    _topNavigationRepository =
-        widget.topNavigationRepository ?? const MockTopNavigationRepository();
+    _topNavigationRepository = widget.topNavigationRepository;
     _topNavigationStatusFuture = _topNavigationRepository.fetchStatus();
     _pages = [
       const CalendarPage(),
       const LearnPage(),
-      HomeTabPage(repository: widget.homeRepository),
+      HomeTabPage(
+        repository: widget.homeRepository,
+        initialDashboard: widget.initialHomeDashboard,
+      ),
       const TaskPage(),
       const ProfilePage(),
     ];
@@ -91,9 +97,10 @@ class _HomePageState extends State<HomePage> {
             right: 0,
             child: FutureBuilder<TopNavigationStatus>(
               future: _topNavigationStatusFuture,
-              initialData: MockTopNavigationRepository.mockStatus,
+              initialData: widget.initialTopNavigationStatus,
               builder: (context, snapshot) {
-                final status = snapshot.data!;
+                final status = snapshot.data;
+                if (status == null) return const SizedBox.shrink();
                 return CodeTrainTopNavigation(
                   level: status.level,
                   progress: status.experienceProgress,

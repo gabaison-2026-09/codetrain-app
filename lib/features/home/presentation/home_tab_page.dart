@@ -1,13 +1,19 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
-import '../data/mock_home_dashboard_repository.dart';
 import '../domain/home_dashboard.dart';
 import '../domain/home_dashboard_repository.dart';
 
 class HomeTabPage extends StatefulWidget {
-  const HomeTabPage({super.key, this.repository});
+  const HomeTabPage({
+    super.key,
+    required this.repository,
+    this.initialDashboard,
+  });
 
-  final HomeDashboardRepository? repository;
+  final HomeDashboardRepository repository;
+  final HomeDashboard? initialDashboard;
 
   @override
   State<HomeTabPage> createState() => _HomeTabPageState();
@@ -15,16 +21,12 @@ class HomeTabPage extends StatefulWidget {
 
 class _HomeTabPageState extends State<HomeTabPage> {
   late final HomeDashboardRepository _repository;
-  late final HomeDashboard _initialDashboard;
   late final Future<HomeDashboard> _dashboardFuture;
 
   @override
   void initState() {
     super.initState();
-    _repository = widget.repository ?? const MockHomeDashboardRepository();
-    _initialDashboard = MockHomeDashboardRepository.dashboardFor(
-      DateTime.now(),
-    );
+    _repository = widget.repository;
     _dashboardFuture = _repository.fetchDashboard();
   }
 
@@ -32,7 +34,7 @@ class _HomeTabPageState extends State<HomeTabPage> {
   Widget build(BuildContext context) {
     return FutureBuilder<HomeDashboard>(
       future: _dashboardFuture,
-      initialData: _initialDashboard,
+      initialData: widget.initialDashboard,
       builder: (context, snapshot) {
         final dashboard = snapshot.data;
         if (dashboard == null) {
@@ -81,62 +83,14 @@ class _HomeDashboardView extends StatelessWidget {
                 statuses: dashboard.dayStatuses,
                 highlightedDayIndex: dashboard.highlightedDayIndex,
               ),
-              const SizedBox(height: 45),
-              const _SectionHeading(label: 'READY TO TRAIN'),
-              const SizedBox(height: 12),
+              const SizedBox(height: 68),
               const _PlayButton(),
               const SizedBox(height: 17),
               _ProgramRow(programs: dashboard.programs),
-              const SizedBox(height: 22),
-              const _ReviewProgramSection(),
             ],
           ),
         );
       },
-    );
-  }
-}
-
-class _SectionHeading extends StatelessWidget {
-  const _SectionHeading({required this.label});
-
-  final String label;
-
-  static const _purple = Color(0xff6263d9);
-  static const _line = Color(0xffe9e9f0);
-  static const _labelColor = Color(0xff777785);
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        const DecoratedBox(
-          decoration: BoxDecoration(
-            color: _purple,
-            shape: BoxShape.circle,
-          ),
-          child: SizedBox.square(dimension: 6),
-        ),
-        const SizedBox(width: 8),
-        Text(
-          label,
-          style: const TextStyle(
-            color: _labelColor,
-            fontSize: 11,
-            fontWeight: FontWeight.w700,
-            letterSpacing: 1.5,
-            height: 1,
-          ),
-        ),
-        const SizedBox(width: 12),
-        const Expanded(
-          child: Divider(
-            color: _line,
-            thickness: 1,
-            height: 1,
-          ),
-        ),
-      ],
     );
   }
 }
@@ -174,7 +128,7 @@ class _DateAndStreakRow extends StatelessWidget {
                 Transform.translate(
                   offset: const Offset(-3, 13),
                   child: Text(
-                    '${dashboard.activityDate.day}',
+                    '${dashboard.activityDate.month}',
                     style: const TextStyle(
                       color: Colors.black,
                       fontFamily: 'Jua',
@@ -202,7 +156,7 @@ class _DateAndStreakRow extends StatelessWidget {
                 Transform.translate(
                   offset: const Offset(0, 10),
                   child: Text(
-                    '${dashboard.activityDate.month}',
+                    '${dashboard.activityDate.day}',
                     style: const TextStyle(
                       color: Colors.black,
                       fontFamily: 'Jua',
@@ -272,7 +226,9 @@ class _DayStatusDots extends StatelessWidget {
   Color _colorFor(HomeDayStatus status) {
     switch (status) {
       case HomeDayStatus.completed:
-        return const Color(0xff91c783);
+        return const Color.fromARGB(255, 145, 201, 131);
+      case HomeDayStatus.missed:
+        return const Color(0xffe49a9a);
       case HomeDayStatus.active:
         return const Color(0xff6263d9);
       case HomeDayStatus.upcoming:
@@ -297,15 +253,6 @@ class _DayStatusDots extends StatelessWidget {
         height: 34,
         child: Stack(
           children: [
-            const Positioned(
-              left: 7,
-              right: 7,
-              top: 17,
-              child: DecoratedBox(
-                decoration: BoxDecoration(color: Color(0xffe9e9f0)),
-                child: SizedBox(height: 1),
-              ),
-            ),
             Positioned(
               left: 0,
               top: 6,
@@ -333,18 +280,40 @@ class _DayStatusDots extends StatelessWidget {
   }
 }
 
-class _PlayButton extends StatelessWidget {
+class _PlayButton extends StatefulWidget {
   const _PlayButton();
 
+  @override
+  State<_PlayButton> createState() => _PlayButtonState();
+}
+
+class _PlayButtonState extends State<_PlayButton>
+    with SingleTickerProviderStateMixin {
   static const _purple = Color(0xff6263d9);
+  late final AnimationController _rotationController;
+
+  @override
+  void initState() {
+    super.initState();
+    _rotationController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 18),
+    )..repeat();
+  }
+
+  @override
+  void dispose() {
+    _rotationController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Center(
       child: SizedBox.square(
         dimension: 278,
-        child: CustomPaint(
-          painter: const _PlayButtonDecorationPainter(),
+        child: AnimatedBuilder(
+          animation: _rotationController,
           child: const Center(
             child: SizedBox.square(
               dimension: 254,
@@ -366,6 +335,14 @@ class _PlayButton extends StatelessWidget {
               ),
             ),
           ),
+          builder: (context, child) {
+            return CustomPaint(
+              painter: _PlayButtonDecorationPainter(
+                rotation: _rotationController.value * math.pi * 2,
+              ),
+              child: child,
+            );
+          },
         ),
       ),
     );
@@ -373,16 +350,23 @@ class _PlayButton extends StatelessWidget {
 }
 
 class _PlayButtonDecorationPainter extends CustomPainter {
-  const _PlayButtonDecorationPainter();
+  const _PlayButtonDecorationPainter({required this.rotation});
+
+  final double rotation;
 
   @override
   void paint(Canvas canvas, Size size) {
     final center = size.center(Offset.zero);
     final radius = size.shortestSide / 2 - 4;
     final purple = Paint()
-      ..color = const Color(0xff6263d9).withOpacity(0.2)
+      ..color = const Color(0xff6263d9).withValues(alpha: 0.2)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1.5;
+
+    canvas.save();
+    canvas.translate(center.dx, center.dy);
+    canvas.rotate(rotation);
+    canvas.translate(-center.dx, -center.dy);
     canvas.drawArc(
       Rect.fromCircle(center: center, radius: radius),
       -2.75,
@@ -397,11 +381,12 @@ class _PlayButtonDecorationPainter extends CustomPainter {
       false,
       purple,
     );
+    canvas.restore();
   }
 
   @override
   bool shouldRepaint(covariant _PlayButtonDecorationPainter oldDelegate) =>
-      false;
+      oldDelegate.rotation != rotation;
 }
 
 class _ProgramRow extends StatelessWidget {
@@ -409,104 +394,16 @@ class _ProgramRow extends StatelessWidget {
 
   final List<HomeProgram> programs;
 
-  String _labelFor(HomeProgram program) {
-    switch (program) {
-      case HomeProgram.csharp:
-        return 'C#';
-      case HomeProgram.typescript:
-        return 'TypeScript';
-      case HomeProgram.ruby:
-        return 'Ruby';
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Wrap(
       alignment: WrapAlignment.center,
       spacing: 23,
-      runSpacing: 14,
+      runSpacing: 12,
       children: [
-        for (final program in programs)
-          _ProgramItem(
-            icon: _ProgramIcon(program: program),
-            label: _labelFor(program),
-          ),
-        const _ProgramItem(icon: _AddProgramButton(), label: 'ADD'),
-        const _ProgramItem(icon: _AddProgramButton(), label: 'ADD'),
-      ],
-    );
-  }
-}
-
-class _ProgramItem extends StatelessWidget {
-  const _ProgramItem({required this.icon, required this.label});
-
-  final Widget icon;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: 36,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          icon,
-          const SizedBox(height: 5),
-          SizedBox(
-            height: 10,
-            child: FittedBox(
-              fit: BoxFit.scaleDown,
-              child: Text(
-                label,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  color: Color(0xff777785),
-                  fontSize: 10,
-                  fontWeight: FontWeight.w600,
-                  letterSpacing: 0.1,
-                  height: 1,
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ReviewProgramSection extends StatelessWidget {
-  const _ReviewProgramSection();
-
-  static const _purple = Color(0xff6263d9);
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        const _SectionHeading(label: 'REVIEW PROGRAM'),
-        const SizedBox(height: 14),
-        OutlinedButton.icon(
-          onPressed: () {},
-          icon: const Icon(Icons.replay_rounded, size: 20),
-          label: const Text('復習する'),
-          style: OutlinedButton.styleFrom(
-            foregroundColor: _purple,
-            side: const BorderSide(color: _purple, width: 1.5),
-            minimumSize: const Size(152, 48),
-            padding: const EdgeInsets.symmetric(horizontal: 22),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(18),
-            ),
-            textStyle: const TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 0.2,
-            ),
-          ),
-        ),
+        for (final program in programs) ...[_ProgramIcon(program: program)],
+        const _AddProgramButton(),
+        const _AddProgramButton(),
       ],
     );
   }

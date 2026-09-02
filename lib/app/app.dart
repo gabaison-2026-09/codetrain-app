@@ -1,12 +1,30 @@
 import 'package:flutter/material.dart';
 
+import '../features/home/data/mock_home_dashboard_repository.dart';
+import '../features/home/data/mock_top_navigation_repository.dart';
+import '../features/home/domain/home_dashboard_repository.dart';
+import '../features/home/domain/top_navigation_repository.dart';
 import '../features/home/presentation/home_page.dart';
 
 class CodeTrainApp extends StatelessWidget {
-  const CodeTrainApp({super.key});
+  const CodeTrainApp({
+    super.key,
+    this.topNavigationRepository,
+    this.homeRepository,
+  });
+
+  final TopNavigationRepository? topNavigationRepository;
+  final HomeDashboardRepository? homeRepository;
 
   @override
   Widget build(BuildContext context) {
+    final usesMockTopNavigation = topNavigationRepository == null;
+    final usesMockHome = homeRepository == null;
+    final resolvedTopNavigationRepository =
+        topNavigationRepository ?? const MockTopNavigationRepository();
+    final resolvedHomeRepository =
+        homeRepository ?? const MockHomeDashboardRepository();
+
     return MaterialApp(
       title: 'CodeTrain',
       debugShowCheckedModeBanner: false,
@@ -15,7 +33,16 @@ class CodeTrainApp extends StatelessWidget {
         fontFamily: 'Roboto',
         useMaterial3: true,
       ),
-      home: const HomePage(),
+      home: HomePage(
+        topNavigationRepository: resolvedTopNavigationRepository,
+        homeRepository: resolvedHomeRepository,
+        initialTopNavigationStatus: usesMockTopNavigation
+            ? MockTopNavigationRepository.mockStatus
+            : null,
+        initialHomeDashboard: usesMockHome
+            ? MockHomeDashboardRepository.dashboardFor(DateTime.now())
+            : null,
+      ),
     );
   }
 }

@@ -9,9 +9,9 @@ class MockHomeDashboardRepository implements HomeDashboardRepository {
       activityDate: DateTime(now.year, now.month, now.day),
       streakDays: 18,
       dayStatuses: const [
-        HomeDayStatus.active,
-        HomeDayStatus.upcoming,
-        HomeDayStatus.active,
+        HomeDayStatus.completed,
+        HomeDayStatus.missed,
+        HomeDayStatus.completed,
         HomeDayStatus.active,
         HomeDayStatus.upcoming,
         HomeDayStatus.upcoming,
