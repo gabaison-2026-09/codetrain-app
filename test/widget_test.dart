@@ -270,10 +270,12 @@ void main() {
     expect(find.text('連続日数'), findsOneWidget);
     expect(find.byIcon(Icons.play_arrow_rounded), findsOneWidget);
     expect(find.text('TS'), findsOneWidget);
+    expect(find.text('今月の勉強量'), findsOneWidget);
     await tester.tap(find.byKey(const ValueKey('home-play-task-0')));
     await tester.pump();
-    expect(find.text('TypeScript 基礎 を開始します。'), findsOneWidget);
-    expect(find.text('今月の勉強量'), findsOneWidget);
+    await tester.pump(const Duration(milliseconds: 500));
+    expect(find.text('推論される型'), findsOneWidget);
+    expect(find.byType(CodeTrainBottomNavigation), findsNothing);
   });
 
   testWidgets('swiping the play area switches the whole study task', (
@@ -312,6 +314,13 @@ void main() {
 
     expect(find.byKey(const ValueKey('home-programs-task-1')), findsOneWidget);
     expect(find.text('TS'), findsNothing);
+
+    await tester.tap(find.byKey(const ValueKey('home-play-task-1')));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+
+    expect(find.text('Ruby の条件分岐'), findsOneWidget);
+    expect(find.byType(CodeTrainBottomNavigation), findsNothing);
   });
 
   testWidgets('friend selection animation can be completed', (
@@ -385,6 +394,44 @@ void main() {
         expect(find.text('Calendar screen'), findsNothing);
       }
     }
+
+    // Hit testing uses the unexpanded base positions, not the pushed tab
+    // positions shown while Friend is selected.
+    final navigation = find.byType(CodeTrainBottomNavigation);
+    final navigationRect = tester.getRect(navigation);
+    await tester.tapAt(
+      Offset(
+        navigationRect.left + navigationRect.width * 851 / 973,
+        navigationRect.top + navigationRect.width * 40 / 973,
+      ),
+    );
+    await tester.pump();
+    final friendPageLayer = find.ancestor(
+      of: find.text('フレンド').first,
+      matching: find.byType(AnimatedOpacity),
+    );
+    expect(friendPageLayer, findsOneWidget);
+    expect(tester.widget<AnimatedOpacity>(friendPageLayer).opacity, 1);
+
+    await tester.tapAt(
+      Offset(
+        navigationRect.left + navigationRect.width * 558 / 973,
+        navigationRect.center.dy,
+      ),
+    );
+    await tester.pump(const Duration(milliseconds: 600));
+    final taskPageLayer = find.ancestor(
+      of: find.text('タスク'),
+      matching: find.byType(AnimatedOpacity),
+    );
+    expect(taskPageLayer, findsOneWidget);
+    expect(tester.widget<AnimatedOpacity>(taskPageLayer).opacity, 0);
+    final homePageLayer = find.ancestor(
+      of: find.byIcon(Icons.play_arrow_rounded),
+      matching: find.byType(AnimatedOpacity),
+    );
+    expect(homePageLayer, findsOneWidget);
+    expect(tester.widget<AnimatedOpacity>(homePageLayer).opacity, 1);
   });
 
   test('calendar DTO maps API fields to the domain model', () {
@@ -832,7 +879,7 @@ void main() {
     await tester.tap(startButton);
     await tester.pump(const Duration(milliseconds: 600));
 
-    expect(find.byKey(const ValueKey('learn-question-back')), findsNothing);
+    expect(find.byKey(const ValueKey('learn-question-back')), findsOneWidget);
     expect(find.byType(CodeTrainBottomNavigation), findsNothing);
     expect(find.text('1 / 5'), findsOneWidget);
 
@@ -876,6 +923,55 @@ void main() {
     expect(find.byType(CodeTrainBottomNavigation), findsNothing);
     expect(find.text('1 / 5'), findsOneWidget);
     expect(find.text('map の戻り値'), findsOneWidget);
+  });
+
+  testWidgets('learner can stop an ongoing learning session', (
+    WidgetTester tester,
+  ) async {
+    tester.view.physicalSize = const Size(800, 1800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    await tester.pumpWidget(
+      const CodeTrainApp(initiallyAuthenticated: true),
+    );
+
+    final navigation = find.byType(CodeTrainBottomNavigation);
+    final navigationRect = tester.getRect(navigation);
+    await tester.tapAt(
+      Offset(
+        navigationRect.left + navigationRect.width * 302 / 973,
+        navigationRect.center.dy,
+      ),
+    );
+    await tester.pump(const Duration(milliseconds: 600));
+
+    final arrayNode = find.byKey(const ValueKey('learn-node-node-arrays'));
+    await tester.ensureVisible(arrayNode);
+    await tester.tap(arrayNode);
+    final startButton = find.byKey(const ValueKey('learn-start-button'));
+    await tester.ensureVisible(startButton);
+    await tester.tap(startButton);
+    await tester.pump(const Duration(milliseconds: 600));
+
+    final exitButton = find.byKey(const ValueKey('learn-question-back'));
+    expect(exitButton, findsOneWidget);
+    await tester.tap(exitButton);
+    await tester.pump();
+    expect(find.text('学習をやめますか？'), findsOneWidget);
+    expect(find.text('今回の学習状況は破棄されます。'), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('learn-exit-cancel')));
+    await tester.pump();
+    expect(find.text('1 / 5'), findsOneWidget);
+
+    await tester.tap(exitButton);
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('learn-exit-confirm')));
+    await tester.pump();
+    expect(find.byKey(const ValueKey('learn-question-back')), findsNothing);
+    expect(find.byKey(const ValueKey('learn-start-button')), findsOneWidget);
+    expect(find.byType(CodeTrainBottomNavigation), findsOneWidget);
   });
 }
 

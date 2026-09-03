@@ -83,6 +83,24 @@ class MockLearnRepository implements LearnRepository {
           },
         ],
       },
+      {
+        'id': 'skill-ruby',
+        'slug': 'ruby-basics',
+        'name': 'Ruby 基礎',
+        'description': 'Rubyの基本構文をコードリーディングで確認します。',
+        'display_order': 4,
+        'nodes': [
+          {
+            'id': 'node-ruby-flow',
+            'skill_id': 'skill-ruby',
+            'prerequisite_node_ids': <String>[],
+            'slug': 'control-flow',
+            'name': '条件分岐',
+            'difficulty': 1,
+            'display_order': 1,
+          },
+        ],
+      },
     ],
   };
 
@@ -202,6 +220,24 @@ class MockLearnRepository implements LearnRepository {
     ],
     'node-csharp-flow': [
       {
+        'id': 'question-csharp-reading-1',
+        'skill_node_id': 'node-csharp-flow',
+        'type': 'code_reading',
+        'difficulty': 1,
+        'title': 'C# の条件分岐',
+        'body': 'score が 70 のときに表示される文字列を選んでください。',
+        'code':
+            'var score = 70;\nvar result = score >= 70 ? "PASS" : "TRY";\nConsole.WriteLine(result);',
+        'code_language': 'csharp',
+        'choices': [
+          {'key': 'a', 'text': 'PASS'},
+          {'key': 'b', 'text': 'TRY'},
+          {'key': 'c', 'text': '70'},
+          {'key': 'd', 'text': 'エラーになる'},
+        ],
+        'tags': ['conditional', 'ternary'],
+      },
+      {
         'id': 'question-csharp-1',
         'skill_node_id': 'node-csharp-flow',
         'type': 'output_prediction',
@@ -218,6 +254,42 @@ class MockLearnRepository implements LearnRepository {
           {'key': 'd', 'text': '何も表示されない'},
         ],
         'tags': ['if', 'comparison'],
+      },
+    ],
+    'node-ruby-flow': [
+      {
+        'id': 'question-ruby-1',
+        'skill_node_id': 'node-ruby-flow',
+        'type': 'code_reading',
+        'difficulty': 1,
+        'title': 'Ruby の条件分岐',
+        'body': '条件式の結果として表示される文字列を選んでください。',
+        'code': 'score = 80\nputs score >= 70 ? "PASS" : "TRY"',
+        'code_language': 'ruby',
+        'choices': [
+          {'key': 'a', 'text': 'PASS'},
+          {'key': 'b', 'text': 'TRY'},
+          {'key': 'c', 'text': '80'},
+          {'key': 'd', 'text': '何も表示されない'},
+        ],
+        'tags': ['conditional', 'comparison'],
+      },
+      {
+        'id': 'question-ruby-2',
+        'skill_node_id': 'node-ruby-flow',
+        'type': 'code_reading',
+        'difficulty': 2,
+        'title': 'Ruby の配列変換',
+        'body': 'map の結果として正しい配列を選んでください。',
+        'code': 'numbers = [1, 2, 3]\nputs numbers.map { |number| number * 2 }',
+        'code_language': 'ruby',
+        'choices': [
+          {'key': 'a', 'text': '[1, 2, 3]'},
+          {'key': 'b', 'text': '[2, 4, 6]'},
+          {'key': 'c', 'text': '6'},
+          {'key': 'd', 'text': 'エラーになる'},
+        ],
+        'tags': ['array', 'map'],
       },
     ],
   };
@@ -251,6 +323,18 @@ class MockLearnRepository implements LearnRepository {
       key: 'a',
       explanation: '75 は 70 以上なので最初の分岐に入り、PASS が表示されます。',
     ),
+    'question-csharp-reading-1': (
+      key: 'a',
+      explanation: '70 は 70 以上なので、条件が真になり PASS が表示されます。',
+    ),
+    'question-ruby-1': (
+      key: 'a',
+      explanation: '80 は 70 以上なので、条件が真になり PASS が表示されます。',
+    ),
+    'question-ruby-2': (
+      key: 'b',
+      explanation: 'map は各要素を2倍した [2, 4, 6] を返します。',
+    ),
   };
 
   @override
@@ -264,6 +348,37 @@ class MockLearnRepository implements LearnRepository {
     return responses
         .map((json) => LearnQuestionDetailDto.fromJson(json).toDomain())
         .toList(growable: false);
+  }
+
+  @override
+  Future<List<LearnQuestion>> fetchQuestionsForTask({
+    required List<LearnQuestionFilter> filters,
+  }) async {
+    final questions = _questionResponses.values
+        .expand((responses) => responses)
+        .map((json) => LearnQuestionDetailDto.fromJson(json).toDomain())
+        .toList(growable: false);
+    final selectedQuestions = <LearnQuestion>[];
+    final selectedQuestionIds = <String>{};
+
+    for (final filter in filters) {
+      for (final question in questions) {
+        final matchesType = question.type == filter.type;
+        final matchesLanguage =
+            filter.language.isEmpty ||
+            question.codeLanguage == filter.language;
+        final matchesDifficulty =
+            filter.difficulty == null ||
+            question.difficulty == filter.difficulty;
+        if (matchesType && matchesLanguage && matchesDifficulty) {
+          if (selectedQuestionIds.add(question.id)) {
+            selectedQuestions.add(question);
+          }
+        }
+      }
+    }
+
+    return List.unmodifiable(selectedQuestions);
   }
 
   @override

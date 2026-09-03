@@ -1,5 +1,27 @@
 enum LearnQuestionType { codeReading, outputPrediction }
 
+class LearnQuestionFilter {
+  const LearnQuestionFilter({
+    required this.type,
+    this.language = '',
+    this.difficulty,
+  });
+
+  final LearnQuestionType type;
+  final String language;
+  final int? difficulty;
+}
+
+class LearnTaskStartRequest {
+  const LearnTaskStartRequest({
+    required this.filters,
+    this.isTaskBased = false,
+  });
+
+  final List<LearnQuestionFilter> filters;
+  final bool isTaskBased;
+}
+
 class LearnCatalog {
   const LearnCatalog({required this.skills});
 

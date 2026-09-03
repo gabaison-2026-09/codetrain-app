@@ -13,6 +13,7 @@ import '../../calendar/presentation/calendar_page.dart';
 import '../../learn/presentation/learn_page.dart';
 import '../../learn/domain/learn_content.dart';
 import '../../learn/domain/learn_repository.dart';
+import '../../task/domain/task_configuration.dart';
 import '../../task/presentation/task_page.dart';
 import '../../task/domain/task_launcher.dart';
 import '../../task/domain/task_repository.dart';
@@ -51,9 +52,12 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   late final List<Widget> _pages;
   late final ValueNotifier<int> _taskSelectionVersion;
+  late final ValueNotifier<LearnTaskStartRequest?> _startLearningRequest;
+  late final ValueNotifier<bool> _isHomeVisible;
 
   int _selectedIndex = 2;
   var _isLearnQuestionViewVisible = false;
+  var _isStartingLearningFromHome = false;
   late final TopNavigationRepository _topNavigationRepository;
   late final Future<TopNavigationStatus> _topNavigationStatusFuture;
 
@@ -63,11 +67,16 @@ class _HomePageState extends State<HomePage> {
     _topNavigationRepository = widget.topNavigationRepository;
     _topNavigationStatusFuture = _topNavigationRepository.fetchStatus();
     _taskSelectionVersion = ValueNotifier(0);
+    _startLearningRequest = ValueNotifier(null);
+    _isHomeVisible = ValueNotifier(true);
     _pages = [
       CalendarPage(repository: widget.calendarRepository),
       LearnPage(
         repository: widget.learnRepository,
         initialCatalog: widget.initialLearnCatalog,
+        startLearningRequest: _startLearningRequest,
+        onStartLearningRequestConsumed: () =>
+            _startLearningRequest.value = null,
         onQuestionViewChanged: (isVisible) {
           if (_isLearnQuestionViewVisible == isVisible) return;
           setState(() => _isLearnQuestionViewVisible = isVisible);
@@ -78,7 +87,9 @@ class _HomePageState extends State<HomePage> {
         taskRepository: widget.taskRepository,
         taskLauncher: widget.taskLauncher,
         taskSelectionVersion: _taskSelectionVersion,
+        isVisible: _isHomeVisible,
         initialDashboard: widget.initialHomeDashboard,
+        onStartLearning: _handleStartLearningFromHome,
       ),
       TaskPage(
         repository: widget.taskRepository,
@@ -92,7 +103,37 @@ class _HomePageState extends State<HomePage> {
   @override
   void dispose() {
     _taskSelectionVersion.dispose();
+    _startLearningRequest.dispose();
+    _isHomeVisible.dispose();
     super.dispose();
+  }
+
+  void _handleStartLearningFromHome(LearningTask? task) {
+    if (!mounted) return;
+    setState(() {
+      _selectedIndex = 1;
+      _isStartingLearningFromHome = true;
+    });
+    _isHomeVisible.value = false;
+    _startLearningRequest.value = LearnTaskStartRequest(
+      filters: task == null
+          ? const []
+          : [
+              for (final slot in task.slots)
+                if (slot.questionType != null)
+                  LearnQuestionFilter(
+                    type: switch (slot.questionType!) {
+                      TaskQuestionType.codeReading =>
+                        LearnQuestionType.codeReading,
+                      TaskQuestionType.outputPrediction =>
+                        LearnQuestionType.outputPrediction,
+                    },
+                    language: slot.language,
+                    difficulty: slot.difficulty,
+                  ),
+            ],
+      isTaskBased: task != null,
+    );
   }
 
   @override
@@ -101,37 +142,13 @@ class _HomePageState extends State<HomePage> {
       backgroundColor: Colors.white,
       body: Stack(
         children: [
-          AnimatedSwitcher(
-            duration: const Duration(milliseconds: 260),
-            reverseDuration: const Duration(milliseconds: 180),
-            switchInCurve: Curves.easeOutCubic,
-            switchOutCurve: Curves.easeInCubic,
-            layoutBuilder: (currentChild, previousChildren) {
-              return Stack(
-                fit: StackFit.expand,
-                children: [
-                  ...previousChildren,
-                  ...(currentChild == null
-                      ? const <Widget>[]
-                      : <Widget>[currentChild]),
-                ],
-              );
-            },
-            transitionBuilder: (child, animation) {
-              final slideAnimation = Tween<Offset>(
-                begin: const Offset(0.018, 0),
-                end: Offset.zero,
-              ).animate(animation);
-              return FadeTransition(
-                opacity: animation,
-                child: SlideTransition(position: slideAnimation, child: child),
-              );
-            },
-            child: KeyedSubtree(
-              key: ValueKey(_selectedIndex),
-              child: _pages[_selectedIndex],
+          for (var index = 0; index < _pages.length; index++)
+            _PageLayer(
+              key: ValueKey('page-layer-$index'),
+              page: _pages[index],
+              isVisible: index == _selectedIndex,
+              isStartingLearningFromHome: _isStartingLearningFromHome,
             ),
-          ),
           Positioned(
             top: 0,
             left: 0,
@@ -169,7 +186,9 @@ class _HomePageState extends State<HomePage> {
                       onTabSelected: (index) {
                         setState(() {
                           _selectedIndex = index;
+                          _isStartingLearningFromHome = false;
                         });
+                        _isHomeVisible.value = index == 2;
                       },
                     ),
                   );
@@ -177,6 +196,52 @@ class _HomePageState extends State<HomePage> {
               ),
             ),
         ],
+      ),
+    );
+  }
+}
+
+class _PageLayer extends StatelessWidget {
+  const _PageLayer({
+    super.key,
+    required this.page,
+    required this.isVisible,
+    required this.isStartingLearningFromHome,
+  });
+
+  final Widget page;
+  final bool isVisible;
+  final bool isStartingLearningFromHome;
+
+  @override
+  Widget build(BuildContext context) {
+    final duration = Duration(
+      milliseconds: isStartingLearningFromHome ? 480 : 260,
+    );
+    final hiddenOffset = isStartingLearningFromHome
+        ? const Offset(0, 0.075)
+        : const Offset(0.018, 0);
+    final hiddenScale = isStartingLearningFromHome ? 0.96 : 1.0;
+
+    return Positioned.fill(
+      child: IgnorePointer(
+        ignoring: !isVisible,
+        child: AnimatedOpacity(
+          opacity: isVisible ? 1 : 0,
+          duration: duration,
+          curve: Curves.easeOutCubic,
+          child: AnimatedSlide(
+            offset: isVisible ? Offset.zero : hiddenOffset,
+            duration: duration,
+            curve: Curves.easeOutCubic,
+            child: AnimatedScale(
+              scale: isVisible ? 1 : hiddenScale,
+              duration: duration,
+              curve: Curves.easeOutBack,
+              child: page,
+            ),
+          ),
+        ),
       ),
     );
   }

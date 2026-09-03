@@ -13,6 +13,7 @@ class LearnQuestionView extends StatelessWidget {
     required this.isSubmitting,
     required this.errorMessage,
     required this.contentPadding,
+    required this.onExit,
     required this.onChoiceSelected,
     required this.onSubmit,
     required this.onNext,
@@ -26,6 +27,7 @@ class LearnQuestionView extends StatelessWidget {
   final bool isSubmitting;
   final String? errorMessage;
   final EdgeInsets contentPadding;
+  final VoidCallback onExit;
   final ValueChanged<String> onChoiceSelected;
   final VoidCallback onSubmit;
   final VoidCallback onNext;
@@ -45,6 +47,7 @@ class LearnQuestionView extends StatelessWidget {
                 _QuestionProgressHeader(
                   currentQuestionNumber: currentQuestionNumber,
                   feedbackInterval: feedbackInterval,
+                  onExit: onExit,
                 ),
                 const SizedBox(height: 28),
                 _QuestionHeading(question: question),
@@ -95,7 +98,7 @@ class LearnQuestionView extends StatelessWidget {
                 ],
                 const SizedBox(height: 22),
                 SizedBox(
-                  height: 58,
+                  height: 54,
                   child: FilledButton(
                     key: const ValueKey('learn-answer-button'),
                     onPressed: attemptResult != null
@@ -104,13 +107,13 @@ class LearnQuestionView extends StatelessWidget {
                         ? null
                         : onSubmit,
                     style: FilledButton.styleFrom(
-                      backgroundColor: attemptResult?.isCorrect == false
-                          ? const Color(0xffd95b5b)
-                          : const Color(0xff111116),
-                      disabledBackgroundColor: const Color(0xffd8d8df),
+                      backgroundColor: const Color(0xff6263d9),
+                      foregroundColor: Colors.white,
+                      disabledBackgroundColor: const Color(0xffc7c7dc),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(18),
+                        borderRadius: BorderRadius.circular(14),
                       ),
+                      elevation: 0,
                     ),
                     child: isSubmitting
                         ? const SizedBox.square(
@@ -131,16 +134,16 @@ class LearnQuestionView extends StatelessWidget {
                                     : '次の問題へ',
                                 style: const TextStyle(
                                   fontFamily: 'Noto Sans Japanese',
-                                  fontSize: 16,
+                                  fontSize: 15,
                                   fontWeight: FontWeight.w700,
                                 ),
                               ),
-                              const SizedBox(width: 9),
+                              const SizedBox(width: 10),
                               Icon(
                                 attemptResult == null
                                     ? Icons.check_rounded
                                     : Icons.arrow_forward_rounded,
-                                size: 22,
+                                size: 20,
                               ),
                             ],
                           ),
@@ -159,15 +162,28 @@ class _QuestionProgressHeader extends StatelessWidget {
   const _QuestionProgressHeader({
     required this.currentQuestionNumber,
     required this.feedbackInterval,
+    required this.onExit,
   });
 
   final int currentQuestionNumber;
   final int feedbackInterval;
+  final VoidCallback onExit;
 
   @override
   Widget build(BuildContext context) {
     return Row(
       children: [
+        Transform.translate(
+          offset: const Offset(-10, 0),
+          child: IconButton(
+            key: const ValueKey('learn-question-back'),
+            onPressed: onExit,
+            tooltip: '学習を終了',
+            color: const Color(0xff60606a),
+            icon: const Icon(Icons.arrow_back_rounded),
+          ),
+        ),
+        const SizedBox(width: 6),
         Expanded(
           child: ClipRRect(
             borderRadius: BorderRadius.circular(99),

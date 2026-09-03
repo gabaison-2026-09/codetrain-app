@@ -17,14 +17,18 @@ class HomeTabPage extends StatefulWidget {
     required this.taskRepository,
     required this.taskLauncher,
     this.taskSelectionVersion,
+    this.isVisible,
     this.initialDashboard,
+    this.onStartLearning,
   });
 
   final HomeDashboardRepository repository;
   final TaskRepository taskRepository;
   final TaskLauncher taskLauncher;
   final ValueListenable<int>? taskSelectionVersion;
+  final ValueListenable<bool>? isVisible;
   final HomeDashboard? initialDashboard;
+  final ValueChanged<LearningTask?>? onStartLearning;
 
   @override
   State<HomeTabPage> createState() => _HomeTabPageState();
@@ -61,15 +65,18 @@ class _HomeTabPageState extends State<HomeTabPage> {
   Widget build(BuildContext context) {
     return FutureBuilder<HomeDashboard>(
       future: _dashboardFuture,
-      initialData: widget.initialDashboard,
       builder: (context, snapshot) {
-        final dashboard = snapshot.data;
+        final dashboard = snapshot.data ??
+            (snapshot.hasError ? widget.initialDashboard : null);
         if (dashboard == null) {
-          return const SizedBox.shrink();
+          return const _HomeLoadingView();
         }
         return FutureBuilder<TaskCatalog>(
           future: _taskCatalogFuture,
           builder: (context, taskSnapshot) {
+            if (taskSnapshot.connectionState != ConnectionState.done) {
+              return const _HomeLoadingView();
+            }
             final configuredTasks = taskSnapshot.data?.tasks
                 .where((task) => task.isHomeTask)
                 .take(3)
@@ -87,10 +94,30 @@ class _HomeTabPageState extends State<HomeTabPage> {
               dashboard: dashboard,
               taskLauncher: widget.taskLauncher,
               studyTasks: selectedTasks,
+              taskConfigurations: configuredTasks,
+              isVisible: widget.isVisible,
+              onStartLearning: widget.onStartLearning,
             );
           },
         );
       },
+    );
+  }
+}
+
+class _HomeLoadingView extends StatelessWidget {
+  const _HomeLoadingView();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Center(
+      child: SizedBox.square(
+        dimension: 32,
+        child: CircularProgressIndicator(
+          strokeWidth: 3,
+          color: Color(0xff6263d9),
+        ),
+      ),
     );
   }
 }
@@ -121,11 +148,17 @@ class _HomeDashboardView extends StatefulWidget {
     required this.dashboard,
     required this.taskLauncher,
     required this.studyTasks,
+    this.taskConfigurations,
+    this.isVisible,
+    this.onStartLearning,
   });
 
   final HomeDashboard dashboard;
   final TaskLauncher taskLauncher;
   final List<HomeStudyTask> studyTasks;
+  final List<LearningTask>? taskConfigurations;
+  final ValueListenable<bool>? isVisible;
+  final ValueChanged<LearningTask?>? onStartLearning;
 
   @override
   State<_HomeDashboardView> createState() => _HomeDashboardViewState();
@@ -134,26 +167,23 @@ class _HomeDashboardView extends StatefulWidget {
 class _HomeDashboardViewState extends State<_HomeDashboardView> {
   var _selectedTaskIndex = 0;
   var _swipeDirection = 1;
+  var _isStartingTask = false;
+  HomeStudyTask? _startingTask;
 
-  static const _purple = Color(0xff6263d9);
-  static const _orange = Color(0xffff6a2a);
-  static const _taskColors = [_purple, Color(0xff3f8f9d), Color(0xff8c5aa8)];
-
-  HomeStudyTask get _selectedTask {
-    final tasks = widget.studyTasks;
-    if (tasks.isEmpty) {
-      return const HomeStudyTask(languages: []);
-    }
-    final safeIndex = _selectedTaskIndex.clamp(0, tasks.length - 1).toInt();
-    return tasks[safeIndex];
+  @override
+  void initState() {
+    super.initState();
+    widget.isVisible?.addListener(_handleVisibilityChanged);
   }
-
-  Color get _selectedTaskColor =>
-      _taskColors[_selectedTaskIndex % _taskColors.length];
 
   @override
   void didUpdateWidget(covariant _HomeDashboardView oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (oldWidget.isVisible != widget.isVisible) {
+      oldWidget.isVisible?.removeListener(_handleVisibilityChanged);
+      widget.isVisible?.addListener(_handleVisibilityChanged);
+    }
+
     final taskCount = widget.studyTasks.length;
     if (taskCount == 0) {
       _selectedTaskIndex = 0;
@@ -162,7 +192,55 @@ class _HomeDashboardViewState extends State<_HomeDashboardView> {
     }
   }
 
+  @override
+  void dispose() {
+    widget.isVisible?.removeListener(_handleVisibilityChanged);
+    super.dispose();
+  }
+
+  void _handleVisibilityChanged() {
+    if (!mounted || widget.isVisible?.value != true || !_isStartingTask) {
+      return;
+    }
+    setState(() {
+      _isStartingTask = false;
+      _startingTask = null;
+    });
+  }
+
+  static const _purple = Color(0xff6263d9);
+  static const _orange = Color(0xffff6a2a);
+  static const _taskColors = [_purple, Color(0xff3f8f9d), Color(0xff8c5aa8)];
+
+  HomeStudyTask get _selectedTask {
+    final startingTask = _startingTask;
+    if (startingTask != null) {
+      return startingTask;
+    }
+    final tasks = widget.studyTasks;
+    if (tasks.isEmpty) {
+      return const HomeStudyTask(languages: []);
+    }
+    final safeIndex = _selectedTaskIndex.clamp(0, tasks.length - 1).toInt();
+    return tasks[safeIndex];
+  }
+
+  LearningTask? get _selectedTaskConfiguration {
+    final taskConfigurations = widget.taskConfigurations;
+    if (taskConfigurations == null || taskConfigurations.isEmpty) {
+      return null;
+    }
+    final safeIndex = _selectedTaskIndex
+        .clamp(0, taskConfigurations.length - 1)
+        .toInt();
+    return taskConfigurations[safeIndex];
+  }
+
+  Color get _selectedTaskColor =>
+      _taskColors[_selectedTaskIndex % _taskColors.length];
+
   void _handleTaskSwipe(DragEndDetails details) {
+    if (_isStartingTask) return;
     final velocity = details.primaryVelocity;
     final taskCount = widget.studyTasks.length;
     if (velocity == null || velocity.abs() < 100 || taskCount < 2) {
@@ -179,8 +257,14 @@ class _HomeDashboardViewState extends State<_HomeDashboardView> {
   }
 
   Future<void> _handleStartSelectedTask() async {
+    if (_isStartingTask) return;
     final task = _selectedTask;
+    final taskConfiguration = _selectedTaskConfiguration;
     if (task.id.isEmpty && task.taskNo == null) return;
+    setState(() {
+      _isStartingTask = true;
+      _startingTask = task;
+    });
     try {
       await widget.taskLauncher.start(
         TaskLaunchTarget(
@@ -191,11 +275,19 @@ class _HomeDashboardViewState extends State<_HomeDashboardView> {
       );
       if (!mounted) return;
       HapticFeedback.mediumImpact();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('${task.name} を開始します。')),
-      );
+      widget.onStartLearning?.call(taskConfiguration);
+      if (widget.onStartLearning == null) {
+        setState(() {
+          _isStartingTask = false;
+          _startingTask = null;
+        });
+      }
     } catch (_) {
       if (!mounted) return;
+      setState(() {
+        _isStartingTask = false;
+        _startingTask = null;
+      });
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('タスクを開始できませんでした。')),
       );
@@ -260,7 +352,9 @@ class _HomeDashboardViewState extends State<_HomeDashboardView> {
                       child: _PlayButton(
                         key: ValueKey('home-play-task-$_selectedTaskIndex'),
                         color: _selectedTaskColor,
-                        onPressed: _handleStartSelectedTask,
+                        onPressed: _isStartingTask
+                            ? null
+                            : _handleStartSelectedTask,
                       ),
                     ),
                     if (tasks.length > 1) ...[
@@ -661,7 +755,7 @@ class _PlayButton extends StatefulWidget {
   });
 
   final Color color;
-  final VoidCallback onPressed;
+  final VoidCallback? onPressed;
 
   @override
   State<_PlayButton> createState() => _PlayButtonState();
