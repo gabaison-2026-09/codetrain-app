@@ -274,7 +274,6 @@ class _SelectedDayDetails extends StatelessWidget {
   final DateTime date;
   final CalendarDayActivity? activity;
 
-  static const _purple = Color(0xff6263d9);
   static const _ink = Color(0xff222229);
   static const _muted = Color(0xff91919b);
   static const _line = Color(0xffe3e3e9);
