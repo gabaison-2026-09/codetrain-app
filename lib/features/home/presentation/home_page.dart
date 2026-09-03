@@ -53,6 +53,7 @@ class _HomePageState extends State<HomePage> {
   late final List<Widget> _pages;
   late final ValueNotifier<int> _taskSelectionVersion;
   late final ValueNotifier<LearnTaskStartRequest?> _startLearningRequest;
+  late final ValueNotifier<bool> _isHomeVisible;
 
   int _selectedIndex = 2;
   var _isLearnQuestionViewVisible = false;
@@ -67,6 +68,7 @@ class _HomePageState extends State<HomePage> {
     _topNavigationStatusFuture = _topNavigationRepository.fetchStatus();
     _taskSelectionVersion = ValueNotifier(0);
     _startLearningRequest = ValueNotifier(null);
+    _isHomeVisible = ValueNotifier(true);
     _pages = [
       CalendarPage(repository: widget.calendarRepository),
       LearnPage(
@@ -85,6 +87,7 @@ class _HomePageState extends State<HomePage> {
         taskRepository: widget.taskRepository,
         taskLauncher: widget.taskLauncher,
         taskSelectionVersion: _taskSelectionVersion,
+        isVisible: _isHomeVisible,
         initialDashboard: widget.initialHomeDashboard,
         onStartLearning: _handleStartLearningFromHome,
       ),
@@ -101,6 +104,7 @@ class _HomePageState extends State<HomePage> {
   void dispose() {
     _taskSelectionVersion.dispose();
     _startLearningRequest.dispose();
+    _isHomeVisible.dispose();
     super.dispose();
   }
 
@@ -110,6 +114,7 @@ class _HomePageState extends State<HomePage> {
       _selectedIndex = 1;
       _isStartingLearningFromHome = true;
     });
+    _isHomeVisible.value = false;
     _startLearningRequest.value = LearnTaskStartRequest(
       filters: task == null
           ? const []
@@ -137,73 +142,13 @@ class _HomePageState extends State<HomePage> {
       backgroundColor: Colors.white,
       body: Stack(
         children: [
-          AnimatedSwitcher(
-            duration: Duration(
-              milliseconds: _isStartingLearningFromHome ? 480 : 260,
+          for (var index = 0; index < _pages.length; index++)
+            _PageLayer(
+              key: ValueKey('page-layer-$index'),
+              page: _pages[index],
+              isVisible: index == _selectedIndex,
+              isStartingLearningFromHome: _isStartingLearningFromHome,
             ),
-            reverseDuration: const Duration(milliseconds: 180),
-            switchInCurve: Curves.easeOutCubic,
-            switchOutCurve: Curves.easeInCubic,
-            layoutBuilder: (currentChild, previousChildren) {
-              return Stack(
-                fit: StackFit.expand,
-                children: [
-                  ...previousChildren,
-                  ...(currentChild == null
-                      ? const <Widget>[]
-                      : <Widget>[currentChild]),
-                ],
-              );
-            },
-            transitionBuilder: (child, animation) {
-              if (_isStartingLearningFromHome) {
-                final fadeAnimation = CurvedAnimation(
-                  parent: animation,
-                  curve: const Interval(0, 0.78, curve: Curves.easeOutCubic),
-                );
-                final slideAnimation = Tween<Offset>(
-                  begin: const Offset(0, 0.075),
-                  end: Offset.zero,
-                ).animate(
-                  CurvedAnimation(
-                    parent: animation,
-                    curve: Curves.easeOutCubic,
-                  ),
-                );
-                final scaleAnimation = Tween<double>(
-                  begin: 0.96,
-                  end: 1,
-                ).animate(
-                  CurvedAnimation(
-                    parent: animation,
-                    curve: Curves.easeOutBack,
-                  ),
-                );
-                return FadeTransition(
-                  opacity: fadeAnimation,
-                  child: SlideTransition(
-                    position: slideAnimation,
-                    child: ScaleTransition(
-                      scale: scaleAnimation,
-                      child: child,
-                    ),
-                  ),
-                );
-              }
-              final slideAnimation = Tween<Offset>(
-                begin: const Offset(0.018, 0),
-                end: Offset.zero,
-              ).animate(animation);
-              return FadeTransition(
-                opacity: animation,
-                child: SlideTransition(position: slideAnimation, child: child),
-              );
-            },
-            child: KeyedSubtree(
-              key: ValueKey(_selectedIndex),
-              child: _pages[_selectedIndex],
-            ),
-          ),
           Positioned(
             top: 0,
             left: 0,
@@ -243,6 +188,7 @@ class _HomePageState extends State<HomePage> {
                           _selectedIndex = index;
                           _isStartingLearningFromHome = false;
                         });
+                        _isHomeVisible.value = index == 2;
                       },
                     ),
                   );
@@ -250,6 +196,52 @@ class _HomePageState extends State<HomePage> {
               ),
             ),
         ],
+      ),
+    );
+  }
+}
+
+class _PageLayer extends StatelessWidget {
+  const _PageLayer({
+    super.key,
+    required this.page,
+    required this.isVisible,
+    required this.isStartingLearningFromHome,
+  });
+
+  final Widget page;
+  final bool isVisible;
+  final bool isStartingLearningFromHome;
+
+  @override
+  Widget build(BuildContext context) {
+    final duration = Duration(
+      milliseconds: isStartingLearningFromHome ? 480 : 260,
+    );
+    final hiddenOffset = isStartingLearningFromHome
+        ? const Offset(0, 0.075)
+        : const Offset(0.018, 0);
+    final hiddenScale = isStartingLearningFromHome ? 0.96 : 1.0;
+
+    return Positioned.fill(
+      child: IgnorePointer(
+        ignoring: !isVisible,
+        child: AnimatedOpacity(
+          opacity: isVisible ? 1 : 0,
+          duration: duration,
+          curve: Curves.easeOutCubic,
+          child: AnimatedSlide(
+            offset: isVisible ? Offset.zero : hiddenOffset,
+            duration: duration,
+            curve: Curves.easeOutCubic,
+            child: AnimatedScale(
+              scale: isVisible ? 1 : hiddenScale,
+              duration: duration,
+              curve: Curves.easeOutBack,
+              child: page,
+            ),
+          ),
+        ),
       ),
     );
   }

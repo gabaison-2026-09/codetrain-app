@@ -4,6 +4,61 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+const _bottomNavigationTabCenterXPositions = <double>[118, 302, 483, 668, 851];
+const _bottomNavigationSelectionPushDistance = 34.0;
+const _bottomNavigationSelectionBurstProgress = 0.70;
+const _bottomNavigationSelectionPopOvershoot = 1.35;
+const _bottomNavigationBaseHitTestTop = 92.0;
+
+List<double> _restingBottomNavigationTabCenters(int selectedIndex) {
+  return <double>[
+    for (var index = 0;
+        index < _bottomNavigationTabCenterXPositions.length;
+        index++)
+      index == selectedIndex
+          ? _bottomNavigationTabCenterXPositions[index]
+          : _bottomNavigationTabCenterXPositions[index] +
+                (index < selectedIndex
+                    ? -_bottomNavigationSelectionPushDistance
+                    : _bottomNavigationSelectionPushDistance),
+  ];
+}
+
+double _bottomNavigationLayoutProgress(double popProgress) {
+  final normalizedProgress = popProgress.clamp(0.0, 1.0).toDouble();
+  final selectionProgressInput =
+      (normalizedProgress / _bottomNavigationSelectionBurstProgress)
+          .clamp(0.0, 1.0)
+          .toDouble();
+  final easedSelectionProgress = Curves.easeOutBack.transform(
+    selectionProgressInput,
+  );
+  final selectionPopProgress =
+      selectionProgressInput +
+      (easedSelectionProgress - selectionProgressInput) *
+          _bottomNavigationSelectionPopOvershoot;
+  return selectionPopProgress.clamp(0.0, 1.0).toDouble();
+}
+
+List<double> _bottomNavigationTabCenters({
+  required int previousSelectedIndex,
+  required int selectedIndex,
+  required double popProgress,
+}) {
+  final previousTabCenters =
+      _restingBottomNavigationTabCenters(previousSelectedIndex);
+  final selectedTabCenters = _restingBottomNavigationTabCenters(selectedIndex);
+  final layoutProgress = _bottomNavigationLayoutProgress(popProgress);
+  return <double>[
+    for (var index = 0;
+        index < _bottomNavigationTabCenterXPositions.length;
+        index++)
+      previousTabCenters[index] +
+          (selectedTabCenters[index] - previousTabCenters[index]) *
+              layoutProgress,
+  ];
+}
+
 class CodeTrainBottomNavigation extends StatefulWidget {
   const CodeTrainBottomNavigation({
     super.key,
@@ -23,7 +78,6 @@ class CodeTrainBottomNavigation extends StatefulWidget {
 
 class _CodeTrainBottomNavigationState extends State<CodeTrainBottomNavigation>
     with SingleTickerProviderStateMixin {
-  static const _tabCenterXPositions = <double>[118, 302, 483, 668, 851];
   static const _tabLabels = <String>[
     'Calendar',
     'Learn',
@@ -31,8 +85,6 @@ class _CodeTrainBottomNavigationState extends State<CodeTrainBottomNavigation>
     'Task',
     'Friend',
   ];
-  static const _selectionBurstProgress = 0.70;
-
   late final AnimationController _animationController;
   late final Animation<double> _animation;
   late int _selectedIndex;
@@ -58,7 +110,7 @@ class _CodeTrainBottomNavigationState extends State<CodeTrainBottomNavigation>
 
   void _handleAnimationProgress() {
     if (_hasTriggeredSelectionHaptic ||
-        _animationController.value < _selectionBurstProgress) {
+        _animationController.value < _bottomNavigationSelectionBurstProgress) {
       return;
     }
     _hasTriggeredSelectionHaptic = true;
@@ -71,8 +123,10 @@ class _CodeTrainBottomNavigationState extends State<CodeTrainBottomNavigation>
     final x = localPosition.dx / scale;
     var nearestIndex = 0;
     var nearestDistance = double.infinity;
-    for (var index = 0; index < _tabCenterXPositions.length; index++) {
-      final distance = (x - _tabCenterXPositions[index]).abs();
+    for (var index = 0;
+        index < _bottomNavigationTabCenterXPositions.length;
+        index++) {
+      final distance = (x - _bottomNavigationTabCenterXPositions[index]).abs();
       if (distance < nearestDistance) {
         nearestDistance = distance;
         nearestIndex = index;
@@ -94,26 +148,45 @@ class _CodeTrainBottomNavigationState extends State<CodeTrainBottomNavigation>
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTapUp: (details) => _handleTabTap(details.localPosition),
-      child: AnimatedBuilder(
-        animation: _animationController,
-        builder: (context, child) {
-          return CustomPaint(
-            painter: _AnimatedBottomNavigationPainter(
-              bottomInset: widget.bottomInset,
-              selectedX: _tabCenterXPositions[_selectedIndex],
-              selectedIndex: _selectedIndex,
-              previousSelectedIndex: _previousSelectedIndex,
-              selectedLabel: _tabLabels[_selectedIndex],
-              popProgress: _animation.value,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final scale = constraints.maxWidth / 973;
+        return Stack(
+          children: [
+            Positioned.fill(
+              child: AnimatedBuilder(
+                animation: _animationController,
+                builder: (context, child) {
+                  return CustomPaint(
+                    painter: _AnimatedBottomNavigationPainter(
+                      bottomInset: widget.bottomInset,
+                      selectedX:
+                          _bottomNavigationTabCenterXPositions[_selectedIndex],
+                      selectedIndex: _selectedIndex,
+                      previousSelectedIndex: _previousSelectedIndex,
+                      selectedLabel: _tabLabels[_selectedIndex],
+                      popProgress: _animation.value,
+                    ),
+                    child: child,
+                  );
+                },
+                child: const SizedBox.expand(),
+              ),
             ),
-            child: child,
-          );
-        },
-        child: const SizedBox.expand(),
-      ),
+            Positioned(
+              top: _bottomNavigationBaseHitTestTop * scale,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTapUp: (details) => _handleTabTap(details.localPosition),
+                child: const SizedBox.expand(),
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -143,13 +216,9 @@ class _AnimatedBottomNavigationPainter extends _BottomNavigationPainter {
 
   static const _black = Color(0xff050505);
   static const _border = Color(0xffb8b8b8);
-  static const _selectionPopOvershoot = 1.35;
   static const _selectionJoinAngle = 0.22;
   static const _selectionJoinWidth = 14.0;
   static const _selectionJoinHandle = 14.0;
-  static const _tabCenterXPositions = <double>[118, 302, 483, 668, 851];
-  static const _selectionPushDistance = 34.0;
-
   @override
   void paint(Canvas canvas, Size size) {
     final sx = size.width / 973;
@@ -164,8 +233,10 @@ class _AnimatedBottomNavigationPainter extends _BottomNavigationPainter {
       ..style = PaintingStyle.stroke
       ..strokeWidth = 2.2;
 
-    final isAttached = normalizedProgress < 0.70;
-    final selectionProgressInput = (normalizedProgress / 0.70)
+    final isAttached =
+        normalizedProgress < _bottomNavigationSelectionBurstProgress;
+    final selectionProgressInput =
+        (normalizedProgress / _bottomNavigationSelectionBurstProgress)
         .clamp(0.0, 1.0)
         .toDouble();
     final easedSelectionProgress = Curves.easeOutBack.transform(
@@ -174,25 +245,20 @@ class _AnimatedBottomNavigationPainter extends _BottomNavigationPainter {
     final selectionPopProgress =
         selectionProgressInput +
         (easedSelectionProgress - selectionProgressInput) *
-            _selectionPopOvershoot;
+            _bottomNavigationSelectionPopOvershoot;
     final separationProgress = Curves.easeInOutCubic.transform(
-      ((normalizedProgress - 0.70) / 0.30).clamp(0.0, 1.0),
+      ((normalizedProgress - _bottomNavigationSelectionBurstProgress) / 0.30)
+          .clamp(0.0, 1.0),
     );
     const selectionBubbleColor = Colors.white;
     const selectionBubbleBorderColor = _border;
     // Keep the circle, nodes, labels, and connection line on the same layout
     // progress so they contract together before the bubble separates.
-    final layoutProgress = selectionPopProgress.clamp(0.0, 1.0).toDouble();
-    final previousTabCenters = _restingTabCenters(previousSelectedIndex);
-    final selectedTabCenters = _restingTabCenters(selectedIndex);
-    final tabCenters = <double>[
-      for (var index = 0; index < _tabCenterXPositions.length; index++)
-        _lerp(
-          previousTabCenters[index],
-          selectedTabCenters[index],
-          layoutProgress,
-        ),
-    ];
+    final tabCenters = _bottomNavigationTabCenters(
+      previousSelectedIndex: previousSelectedIndex,
+      selectedIndex: selectedIndex,
+      popProgress: normalizedProgress,
+    );
     final selectionCenterX = tabCenters[selectedIndex];
     final notchStart = math.max(0.0, selectionCenterX - 153).toDouble();
     final notchEnd = math.min(973.0, selectionCenterX + 154).toDouble();
@@ -374,22 +440,6 @@ class _AnimatedBottomNavigationPainter extends _BottomNavigationPainter {
     );
 
     canvas.restore();
-  }
-
-  List<double> _restingTabCenters(int selectedIndex) {
-    return <double>[
-      for (var index = 0; index < _tabCenterXPositions.length; index++)
-        index == selectedIndex
-            ? _tabCenterXPositions[index]
-            : _tabCenterXPositions[index] +
-                  (index < selectedIndex
-                      ? -_selectionPushDistance
-                      : _selectionPushDistance),
-    ];
-  }
-
-  double _lerp(double start, double end, double progress) {
-    return start + (end - start) * progress;
   }
 
   void _drawSelectionBubble(

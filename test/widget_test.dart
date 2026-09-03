@@ -394,6 +394,44 @@ void main() {
         expect(find.text('Calendar screen'), findsNothing);
       }
     }
+
+    // Hit testing uses the unexpanded base positions, not the pushed tab
+    // positions shown while Friend is selected.
+    final navigation = find.byType(CodeTrainBottomNavigation);
+    final navigationRect = tester.getRect(navigation);
+    await tester.tapAt(
+      Offset(
+        navigationRect.left + navigationRect.width * 851 / 973,
+        navigationRect.top + navigationRect.width * 40 / 973,
+      ),
+    );
+    await tester.pump();
+    final friendPageLayer = find.ancestor(
+      of: find.text('フレンド').first,
+      matching: find.byType(AnimatedOpacity),
+    );
+    expect(friendPageLayer, findsOneWidget);
+    expect(tester.widget<AnimatedOpacity>(friendPageLayer).opacity, 1);
+
+    await tester.tapAt(
+      Offset(
+        navigationRect.left + navigationRect.width * 558 / 973,
+        navigationRect.center.dy,
+      ),
+    );
+    await tester.pump(const Duration(milliseconds: 600));
+    final taskPageLayer = find.ancestor(
+      of: find.text('タスク'),
+      matching: find.byType(AnimatedOpacity),
+    );
+    expect(taskPageLayer, findsOneWidget);
+    expect(tester.widget<AnimatedOpacity>(taskPageLayer).opacity, 0);
+    final homePageLayer = find.ancestor(
+      of: find.byIcon(Icons.play_arrow_rounded),
+      matching: find.byType(AnimatedOpacity),
+    );
+    expect(homePageLayer, findsOneWidget);
+    expect(tester.widget<AnimatedOpacity>(homePageLayer).opacity, 1);
   });
 
   test('calendar DTO maps API fields to the domain model', () {
