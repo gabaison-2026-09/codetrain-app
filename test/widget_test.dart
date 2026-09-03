@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:codetrain_app/app/app.dart';
+import 'package:codetrain_app/features/calendar/data/calendar_response_dto.dart';
+import 'package:codetrain_app/features/calendar/data/mock_calendar_repository.dart';
+import 'package:codetrain_app/features/calendar/presentation/calendar_page.dart';
 import 'package:codetrain_app/features/friend/data/friend_user_dto.dart';
 import 'package:codetrain_app/features/friend/data/mock_friend_repository.dart';
 import 'package:codetrain_app/features/friend/domain/friend_user.dart';
@@ -103,6 +106,7 @@ void main() {
           taskLauncher: const MockTaskLauncher(),
           learnRepository: const MockLearnRepository(),
           taskRepository: MockTaskRepository(),
+          calendarRepository: const MockCalendarRepository(),
         ),
       ),
     );
@@ -139,6 +143,7 @@ void main() {
           taskLauncher: const MockTaskLauncher(),
           learnRepository: const MockLearnRepository(),
           taskRepository: MockTaskRepository(),
+          calendarRepository: const MockCalendarRepository(),
         ),
       ),
     );
@@ -223,10 +228,112 @@ void main() {
         expect(find.byKey(const ValueKey('friend-open-search')), findsOneWidget);
         expect(find.byKey(const ValueKey('friend-search-field')), findsNothing);
       } else {
-        expect(find.text(tab.label), findsOneWidget);
-        expect(find.text('${tab.label} screen'), findsOneWidget);
+        expect(find.byKey(const ValueKey('calendar-month-grid')), findsOneWidget);
+        expect(find.text('Calendar screen'), findsNothing);
       }
     }
+  });
+
+  test('calendar DTO maps API fields to the domain model', () {
+    final activity = CalendarResponseDto.fromJson({
+      'days': [
+        {
+          'date': '2026-08-19',
+          'total_slots': 3,
+          'completed_slots': 1,
+          'completed': false,
+          'tasks': [
+            {
+              'task_id': 'task-1',
+              'name': 'TypeScript 基礎',
+              'total_questions': 3,
+              'completed_questions': 1,
+              'contents': [
+                {
+                  'question_type': 'code_reading',
+                  'language': 'typescript',
+                  'difficulty': 1,
+                  'question_count': 2,
+                },
+              ],
+            },
+          ],
+        },
+      ],
+      'streak_days': 5,
+      'last_studied_on': '2026-08-19',
+    }).toDomain();
+
+    expect(activity.days.single.date, DateTime(2026, 8, 19));
+    expect(activity.days.single.studied, isTrue);
+    expect(activity.days.single.completed, isFalse);
+    expect(activity.days.single.tasks.single.name, 'TypeScript 基礎');
+    expect(activity.days.single.tasks.single.totalQuestions, 3);
+    expect(activity.days.single.tasks.single.contents.single.questionCount, 2);
+    expect(activity.streakDays, 5);
+  });
+
+  testWidgets('calendar moves between months and shows selected day progress', (
+    WidgetTester tester,
+  ) async {
+    tester.view.physicalSize = const Size(800, 1200);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: CalendarPage(
+            repository: const MockCalendarRepository(),
+            initialMonth: DateTime(2026, 8),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('2026年8月'), findsOneWidget);
+    expect(find.byKey(const ValueKey('calendar-month-grid')), findsOneWidget);
+    final calendarHeightBeforeSelection = tester
+        .getSize(find.byKey(const ValueKey('calendar-month-grid')))
+        .height;
+
+    await tester.tap(find.byKey(const ValueKey('calendar-day-19')));
+    await tester.pump();
+    final calendarHeightAfterSelection = tester
+        .getSize(find.byKey(const ValueKey('calendar-month-grid')))
+        .height;
+    expect(calendarHeightAfterSelection, calendarHeightBeforeSelection);
+    expect(
+      find.byKey(const ValueKey('calendar-selected-day-detail')),
+      findsOneWidget,
+    );
+    expect(find.text('1 / 3'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('calendar-selected-day-progress')),
+      findsOneWidget,
+    );
+    expect(find.text('TypeScript 基礎'), findsOneWidget);
+    expect(find.text('1 / 3問'), findsNothing);
+    expect(find.textContaining('コード読解・TypeScript・Lv.1'), findsOneWidget);
+    expect(
+      find.byKey(
+        const ValueKey('calendar-task-content-task-typescript-basics-0'),
+      ),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.byKey(const ValueKey('calendar-day-18')));
+    await tester.pump();
+    expect(find.byIcon(Icons.check_circle_rounded), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('calendar-selected-day-progress')),
+      findsNothing,
+    );
+
+    await tester.tap(find.byKey(const ValueKey('calendar-next-month')));
+    await tester.pumpAndSettle();
+    expect(find.text('2026年9月'), findsOneWidget);
   });
 
   test('task slot DTO maps API fields to the domain model', () {

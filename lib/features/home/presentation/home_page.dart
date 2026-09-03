@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../calendar/domain/calendar_repository.dart';
 import '../../friend/domain/friend_repository.dart';
 import '../../friend/presentation/friend_page.dart';
 import '../domain/home_dashboard.dart';
@@ -26,6 +27,7 @@ class HomePage extends StatefulWidget {
     required this.taskLauncher,
     required this.learnRepository,
     required this.taskRepository,
+    required this.calendarRepository,
     this.initialTopNavigationStatus,
     this.initialHomeDashboard,
     this.initialLearnCatalog,
@@ -37,6 +39,7 @@ class HomePage extends StatefulWidget {
   final TaskLauncher taskLauncher;
   final LearnRepository learnRepository;
   final TaskRepository taskRepository;
+  final CalendarRepository calendarRepository;
   final TopNavigationStatus? initialTopNavigationStatus;
   final HomeDashboard? initialHomeDashboard;
   final LearnCatalog? initialLearnCatalog;
@@ -61,7 +64,7 @@ class _HomePageState extends State<HomePage> {
     _topNavigationStatusFuture = _topNavigationRepository.fetchStatus();
     _taskSelectionVersion = ValueNotifier(0);
     _pages = [
-      const CalendarPage(),
+      CalendarPage(repository: widget.calendarRepository),
       LearnPage(
         repository: widget.learnRepository,
         initialCatalog: widget.initialLearnCatalog,
