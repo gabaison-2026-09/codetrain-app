@@ -1,23 +1,24 @@
 # 現在の機能実装・API接続一覧
 
-更新日: 2026-09-03
+更新日: 2026-09-04
 
 この文書は、現在の `codetrain-app` に実装されている画面・機能と、APIへ接続する際の差し替え箇所を一覧化したものです。APIの入出力仕様そのものは [`docs/API_DESIGN.md`](../API_DESIGN.md) を正とします。
 
 ## 全体状況
 
 - アプリの起動と画面表示は実装済みです。
-- 起動時のログイン画面、専用のアカウント新規作成画面、メール／パスワードとGoogleのモック認証、認証後のホーム表示を実装済みです。認証情報の保存と外部送信は行いません。
+- 起動時のログイン画面、専用のアカウント新規作成画面、メール／パスワードとGoogleのモック認証を実装済みです。新規作成後は初回タスク提案を行い、既存ユーザーのログイン後はホームを表示します。認証情報の保存と外部送信は行いません。
 - 現在の画面データ取得・保存はすべてモックRepositoryを使用しています。FlutterアプリからAPIへ通信する具体的なAPI Client / Data Source / API版Repositoryはまだありません。
 - `CodeTrainApp` がComposition RootとしてRepositoryを解決し、`HomePage` 以下へ注入します。API版を実装した場合も、原則として `lib/app/app.dart` の注入先を差し替えます。
-- APIレスポンスをアプリ内モデルへ変換するDTOは、トップナビゲーション、カレンダー、学習、タスク、フレンドの一部に実装済みです。
+- APIレスポンスをアプリ内モデルへ変換するDTOは、トップナビゲーション、カレンダー、学習、タスク、初回タスク提案、フレンドの一部に実装済みです。
 - `pubspec.yaml` には現在、HTTP通信ライブラリや認証ライブラリは追加されていません。
 
 ## 機能一覧
 
 | 機能 | 現在の実装 | 現在のデータ元 | API接続時の候補 | 主な実装箇所 |
 | --- | --- | --- | --- | --- |
-| 認証 | メール／パスワード入力、パスワード表示切り替え、Googleログイン、アカウント新規作成、入力検証、認証後のホーム表示を実装済み | `MockAuthRepository` | Firebase Authenticationを実装するRepositoryへ差し替え。Firebase IDトークンをBearerトークンに使用する想定 | `lib/features/authentication/`、`lib/app/app.dart` |
+| 認証 | メール／パスワード入力、パスワード表示切り替え、Googleログイン、アカウント新規作成、入力検証、ログイン後のホーム表示、新規作成後の初回タスク提案遷移を実装済み | `MockAuthRepository` | Firebase Authenticationを実装するRepositoryへ差し替え。Firebase IDトークンをBearerトークンに使用する想定 | `lib/features/authentication/`、`lib/app/app.dart` |
+| 初回タスク提案 | 新規作成後の4問、経験スライダー、提案確認、タスク保存を実装済み | `MockTaskRecommendationRepository` | `POST /v1/task-recommendations` で回答を一時処理し、確定時だけ `POST /v1/tasks` で保存 | `lib/features/onboarding/`、`lib/app/app.dart` |
 | アプリ全体・タブ切り替え | Calendar / Learn / Home / Task / Friend の5タブ、260msのフェード＋横スライド、トップ・ボトムナビゲーションの共通表示を実装済み | 画面内の状態 | API不要 | `lib/features/home/presentation/home_page.dart`、`lib/shared/widgets/` |
 | トップナビゲーション | レベル、経験値進捗、ハートを表示済み。ホーム画面の全タブ共通レイアウト上部に表示 | `MockTopNavigationRepository` | `GET /v1/me` の `progress` | `lib/shared/widgets/code_train_top_navigation.dart`、`lib/features/home/` |
 | ホームダッシュボード | 日付、連続学習日数、当日のタスク消化ゲージ、月間進捗、最大3件のホーム対象タスク、スワイプ切り替え、言語アイコン、再生ボタンからの学習開始を実装済み | `MockHomeDashboardRepository`、`MockTaskRepository`、`MockLearnRepository` | `GET /v1/home`。連続学習日数は `GET /v1/me` の `progress.streak_days` を利用する想定 | `lib/features/home/presentation/home_page.dart`、`lib/features/home/presentation/home_tab_page.dart`、`lib/features/home/domain/` |
@@ -115,6 +116,15 @@ API版へ接続するときは、対象featureの `data/` にAPI Client / Data S
 - 現行API設計の `/v1/task-slots` はユーザー単位の5スロットを扱うため、アプリの要件である「複数タスク」「`task_id`」「名前」「`is_home_task`」「ホーム対象最大3件」と一致しません。
 - API接続前に、タスク単位の一覧・作成・更新・削除APIを追加し、`TaskRepository` の各操作へ対応させる必要があります。詳細な不足事項は [`docs/API_DESIGN.md`](../API_DESIGN.md) のタスク画面節に記載されています。
 
+### 初回タスク提案
+
+- Repository: `TaskRecommendationRepository.recommend()`
+- モック: `MockTaskRecommendationRepository`
+- 接続先: `POST /v1/task-recommendations`
+- 回答は正規化済みIDだけを送信し、バックエンドでは提案処理中だけ利用して保持しません。
+- 提案確定後は既存の `TaskRepository.saveTask()` を通して `POST /v1/tasks` へ保存します。
+- API、提案ロジック、データ保持の詳細は [`task_recommendation.md`](task_recommendation.md) と [`docs/API_DESIGN.md`](../API_DESIGN.md) に記載しています。
+
 ### フレンド
 
 - Repository: `FriendRepository.fetchUsers()`、`searchUserByCode()`、`sendRequest()`、`cancelRequest()`、`acceptRequest()`、`declineRequest()`、`removeFriend()`
@@ -142,6 +152,7 @@ API版へ接続するときは、対象featureの `data/` にAPI Client / Data S
 - XP配点、ハート回復、streak判定タイムゾーン、SRS更新規則。
 - ホームの再生ボタンおよびタスク画面の開始ボタンが呼び出す開始API。
 - 複数タスクを扱うタスク単位APIの仕様。
+- 初回タスク提案ロジックの具体的な重みと、利用可能な問題が不足する場合の言語なしスロット構成。
 - フレンド検索の公開範囲、ブロック機能、申請・解除後の保持期間。
 - APIエラーをRepositoryがどのドメインエラーへ変換し、各画面でどう表示するか。
 

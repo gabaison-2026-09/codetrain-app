@@ -6,7 +6,7 @@
 - 共有ドメイン型: `codetrain-core/pkg/domain`
 - 関連: [DB_SCHEMA.md](DB_SCHEMA.md)（テーブル定義） / [DESIGN.md](DESIGN.md) §6（データモデル） / [OPEN_ISSUES.md](OPEN_ISSUES.md)（未確定パラメータ）
 - ステータス: 設計中（`GET /healthz` / `GET /v1/skills` / `GET /v1/me` のみ実装済み。他は本ドキュメントで新規設計）
-- 対象画面: ホーム / 学習 / タスク / カレンダー / プロフィール（`codetrain-app`）＋ レビューキュー（`codetrain-admin`）
+- 対象画面: 初回タスク提案 / ホーム / 学習 / タスク / カレンダー / プロフィール（`codetrain-app`）＋ レビューキュー（`codetrain-admin`）
 
 ---
 
@@ -83,6 +83,8 @@
 
 | 種別 | エンドポイント | 概略 | 認証是非 |
 | --- | --- | --- | --- |
+| POST | `/v1/task-recommendations` | 初回質問の回答から保存前のタスク案を生成する | 必須 |
+| POST | `/v1/tasks` | 確認済みのタスクを作成する | 必須 |
 | GET | `/v1/task-slots` | 設定済みタスクスロット（最大5）を取得する | 必須 |
 | PUT | `/v1/task-slots/{slot_no}` | タスクスロットを設定する（作成/更新） | 必須 |
 | DELETE | `/v1/task-slots/{slot_no}` | タスクスロットを削除する | 必須 |
@@ -419,6 +421,94 @@
 }
 ```
 `due_on` が古い順（期限超過が長いものを優先）。
+
+---
+
+### POST /v1/task-recommendations
+
+**概略**: アカウント新規作成後の回答から、保存前の学習タスク案を生成する。回答は提案処理中だけ利用し、このAPIではユーザー設定やタスクを保存しない。
+**認証是非**: 必須
+
+クライアントは認証後の `GET /v1/me` と、未登録時の `POST /v1/me` を完了してからこのAPIを呼ぶ。
+
+**リクエストボディ**
+```json
+{
+  "goal": "mobile_app",
+  "language": "typescript",
+  "purpose": "personal_project",
+  "experience": "none"
+}
+```
+
+| フィールド | 許可値 |
+| --- | --- |
+| `goal` | `web_service` / `mobile_app` / `game` / `automation` / `data_analysis` |
+| `language` | `typescript` / `ruby` / `javascript` / `csharp` |
+| `purpose` | `first_development` / `work` / `career` / `personal_project` / `review` |
+| `experience` | `none` / `less_than_six_months` / `six_months_to_one_year` / `one_to_three_years` / `over_three_years` |
+
+すべて必須。自由入力や表示文言は送信せず、上記の正規化済みIDだけを受け付ける。
+
+**レスポンスボディ** `200 OK`
+```json
+{
+  "task": {
+    "name": "TypeScript スマホアプリ",
+    "is_home_task": true,
+    "slots": [
+      {"slot_no": 1, "question_type": "code_reading", "language": "typescript", "minimum_difficulty": 1, "maximum_difficulty": 2},
+      {"slot_no": 2, "question_type": "code_reading", "language": "typescript", "minimum_difficulty": 1, "maximum_difficulty": 2},
+      {"slot_no": 3, "question_type": "output_prediction", "language": "", "minimum_difficulty": 1, "maximum_difficulty": 2},
+      {"slot_no": 4, "question_type": "output_prediction", "language": "", "minimum_difficulty": 1, "maximum_difficulty": 2},
+      {"slot_no": 5, "question_type": "output_prediction", "language": "", "minimum_difficulty": 1, "maximum_difficulty": 2}
+    ]
+  }
+}
+```
+
+- `task` は保存前の案であり、`id` を持たない。
+- 5件すべてのスロットを返し、各組み合わせは `GET /v1/task-slots/options` の候補に存在しなければならない。
+- `goal` をタスク名、学習テーマ、問題種別の配分、`experience` と `purpose` を難易度、`language` を言語指定の主な入力として利用する。
+- 指定言語だけで5件を構成できない場合は、言語指定なしの利用可能な問題種別を組み合わせる。
+- 回答、導出した特徴量、レスポンスのタスク案をDB、キャッシュ、分析基盤へ保持しない。アクセスログにもリクエストボディを出力しない。
+- 外部の生成AIまたは分析サービスには送信しない。将来利用する場合は提供先、送信項目、保持期間を確定してクライアント仕様とプライバシーポリシーを更新する。
+
+**エラー**: `VALIDATION_ERROR`（400。必須項目の欠落または許可されていない回答ID）/ `USER_NOT_FOUND`（404）/ `RECOMMENDATION_NOT_AVAILABLE`（422。有効な5スロットを構成できない）
+
+---
+
+### POST /v1/tasks
+
+**概略**: ユーザーが確認した学習タスクを作成する。初回提案に限らず、タスク管理画面からの新規作成にも利用する。
+**認証是非**: 必須
+
+**リクエストボディ**
+```json
+{
+  "name": "TypeScript スマホアプリ",
+  "is_home_task": true,
+  "slots": [
+    {"slot_no": 1, "question_type": "code_reading", "language": "typescript", "minimum_difficulty": 1, "maximum_difficulty": 2},
+    {"slot_no": 2, "question_type": "code_reading", "language": "typescript", "minimum_difficulty": 1, "maximum_difficulty": 2},
+    {"slot_no": 3, "question_type": "output_prediction", "language": "", "minimum_difficulty": 1, "maximum_difficulty": 2},
+    {"slot_no": 4, "question_type": "output_prediction", "language": "", "minimum_difficulty": 1, "maximum_difficulty": 2},
+    {"slot_no": 5, "question_type": "output_prediction", "language": "", "minimum_difficulty": 1, "maximum_difficulty": 2}
+  ]
+}
+```
+
+- `name`: 必須。前後空白を除去した1〜40文字。
+- `slots`: 1〜5件。`slot_no` は1〜5で重複不可。
+- 各スロットは `GET /v1/task-slots/options` に存在する組み合わせと難易度範囲であることをサーバ側で再検証する。
+- `is_home_task: true` は既存のホーム対象と合わせて最大3件。上限時に既存タスクを暗黙に解除しない。
+- 認証ユーザーのタスクとしてトランザクション内でタスク本体とスロットを作成する。
+
+**レスポンスボディ** `201 Created`
+
+リクエストのタスクへサーバ発行の `id` を追加した `{"task": {...}}` を返す。
+
+**エラー**: `VALIDATION_ERROR`（400）/ `USER_NOT_FOUND`（404）/ `TASK_SLOT_OPTION_INVALID`（422）/ `HOME_TASK_LIMIT_REACHED`（422）
 
 ---
 

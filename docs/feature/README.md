@@ -6,7 +6,8 @@
 
 | 機能 | 仕様書 | 用途 | 主な実装箇所 |
 | --- | --- | --- | --- |
-| 認証 | [`authentication.md`](authentication.md) | メール／パスワードまたはGoogleでログインでき、メール／パスワードによるアカウント新規作成にも対応する。現在はFirebase接続前のモック認証を使用する。 | `lib/features/authentication/`、`lib/app/app.dart` |
+| 認証 | [`authentication.md`](authentication.md) | メール／パスワードまたはGoogleでログインでき、メール／パスワードによるアカウント新規作成にも対応する。新規作成時のパスワード入力は自動入力候補によるキーボード切断を避ける。現在はFirebase接続前のモック認証を使用する。 | `lib/features/authentication/`、`lib/app/app.dart` |
+| 初回タスク提案 | [`task_recommendation.md`](task_recommendation.md) | 新規アカウント作成後に目的、希望言語、経験などを質問し、回答に合う最初の学習タスクを提案する。 | `lib/features/onboarding/`、`lib/app/app.dart` |
 | ボトムナビゲーション | [`bottom_navigation.md`](bottom_navigation.md) | ホーム画面下部に Calendar、Learn、Home、Task、Friend の5つのタブを表示し、膨らみや押し出しのない基準位置とトレイ上端より下の領域による当たり判定で選択状態に応じて対応する画面へ切り替える。選択中の拡大円は分離前は白、分離後はタブごとの淡い色と同系色の輪郭線で表示し、分離時に触覚フィードバックを発生させる。 | `lib/shared/widgets/code_train_bottom_navigation.dart`、`lib/features/*/presentation/*_page.dart` |
 | トップナビゲーション | [`top_navigation.md`](top_navigation.md) | ホーム画面上部にプロフィール、レベル、経験値進捗、ハートを表示する。 | `lib/shared/widgets/code_train_top_navigation.dart`、`lib/features/home/presentation/home_page.dart`、`lib/features/home/data/`、`lib/features/home/domain/` |
 | ホームダッシュボード | [`home_dashboard.md`](home_dashboard.md) | 日付、連続学習日数、当月の学習進捗、最大3件の選択タスク、学習タスク切り替え用の再生ボタン、選択タスクの開始操作と学習画面への遷移、選択タスクの言語アイコンを表示する。 | `lib/features/home/presentation/home_tab_page.dart`、`lib/shared/widgets/programming_language_icon.dart`、`lib/features/home/presentation/home_page.dart`、`lib/features/home/data/`、`lib/features/home/domain/` |

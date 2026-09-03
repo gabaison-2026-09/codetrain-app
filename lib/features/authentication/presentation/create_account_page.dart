@@ -66,7 +66,6 @@ class _CreateAccountPageState extends State<CreateAccountPage> {
 
   @override
   Widget build(BuildContext context) {
-    final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -88,7 +87,7 @@ class _CreateAccountPageState extends State<CreateAccountPage> {
         child: LayoutBuilder(
           builder: (context, constraints) {
             return SingleChildScrollView(
-              padding: EdgeInsets.fromLTRB(28, 20, 28, 24 + bottomInset),
+              padding: const EdgeInsets.fromLTRB(28, 20, 28, 24),
               child: ConstrainedBox(
                 constraints: BoxConstraints(
                   minHeight: constraints.maxHeight > 44
@@ -152,9 +151,11 @@ class _CreateAccountPageState extends State<CreateAccountPage> {
                             ),
                             controller: _passwordController,
                             enabled: !_isSubmitting,
+                            keyboardType: TextInputType.visiblePassword,
                             obscureText: !_isPasswordVisible,
+                            autocorrect: false,
+                            enableSuggestions: false,
                             textInputAction: TextInputAction.next,
-                            autofillHints: const [AutofillHints.newPassword],
                             decoration: _inputDecoration(
                               label: 'パスワード',
                               suffixIcon: IconButton(
@@ -187,9 +188,11 @@ class _CreateAccountPageState extends State<CreateAccountPage> {
                             ),
                             controller: _passwordConfirmationController,
                             enabled: !_isSubmitting,
+                            keyboardType: TextInputType.visiblePassword,
                             obscureText: !_isPasswordVisible,
+                            autocorrect: false,
+                            enableSuggestions: false,
                             textInputAction: TextInputAction.done,
-                            autofillHints: const [AutofillHints.newPassword],
                             onFieldSubmitted: (_) => _handleCreateAccount(),
                             decoration: _inputDecoration(
                               label: 'パスワード（確認）',
