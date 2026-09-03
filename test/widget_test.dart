@@ -22,6 +22,53 @@ import 'package:codetrain_app/shared/widgets/code_train_bottom_navigation.dart';
 import 'package:codetrain_app/shared/widgets/code_train_top_navigation.dart';
 
 void main() {
+  testWidgets('login is shown on launch and Google sign-in opens home', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(const CodeTrainApp());
+
+    expect(find.text('CodeTrain'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('login-email-field')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('login-password-field')),
+      findsOneWidget,
+    );
+    expect(find.byType(CodeTrainTopNavigation), findsNothing);
+
+    await tester.tap(find.byKey(const ValueKey('login-google-button')));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(CodeTrainTopNavigation), findsOneWidget);
+    expect(find.byType(CodeTrainBottomNavigation), findsOneWidget);
+  });
+
+  testWidgets('email login validates input and opens home', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(const CodeTrainApp());
+
+    await tester.tap(find.byKey(const ValueKey('login-submit-button')));
+    await tester.pump();
+    expect(find.text('メールアドレスを確認してください'), findsOneWidget);
+    expect(find.text('6文字以上で入力してください'), findsOneWidget);
+
+    await tester.enterText(
+      find.byKey(const ValueKey('login-email-field')),
+      'user@example.com',
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey('login-password-field')),
+      'password',
+    );
+    await tester.tap(find.byKey(const ValueKey('login-submit-button')));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(CodeTrainTopNavigation), findsOneWidget);
+  });
+
   test('GET /v1/me progress DTO maps to the display model', () {
     final response = MeResponseDto.fromJson({
       'progress': {
@@ -49,7 +96,9 @@ void main() {
   testWidgets('top navigation shows level, progress, and hearts', (
     WidgetTester tester,
   ) async {
-    await tester.pumpWidget(const CodeTrainApp());
+    await tester.pumpWidget(
+      const CodeTrainApp(initiallyAuthenticated: true),
+    );
 
     expect(find.byType(CodeTrainTopNavigation), findsOneWidget);
     expect(find.text('Lv.12'), findsOneWidget);
@@ -82,7 +131,9 @@ void main() {
   });
 
   testWidgets('bottom navigation is rendered', (WidgetTester tester) async {
-    await tester.pumpWidget(const CodeTrainApp());
+    await tester.pumpWidget(
+      const CodeTrainApp(initiallyAuthenticated: true),
+    );
 
     expect(find.byType(CodeTrainBottomNavigation), findsOneWidget);
     expect(
@@ -168,7 +219,9 @@ void main() {
   testWidgets('friend selection animation can be completed', (
     WidgetTester tester,
   ) async {
-    await tester.pumpWidget(const CodeTrainApp());
+    await tester.pumpWidget(
+      const CodeTrainApp(initiallyAuthenticated: true),
+    );
 
     final navigation = find.byType(CodeTrainBottomNavigation);
     final navigationRect = tester.getRect(navigation);
@@ -187,7 +240,9 @@ void main() {
   testWidgets('each bottom navigation tab switches the visible screen', (
     WidgetTester tester,
   ) async {
-    await tester.pumpWidget(const CodeTrainApp());
+    await tester.pumpWidget(
+      const CodeTrainApp(initiallyAuthenticated: true),
+    );
 
     const tabs = <({int index, String label})>[
       (index: 0, label: 'Calendar'),
@@ -412,7 +467,9 @@ void main() {
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
-    await tester.pumpWidget(const CodeTrainApp());
+    await tester.pumpWidget(
+      const CodeTrainApp(initiallyAuthenticated: true),
+    );
 
     final navigation = find.byType(CodeTrainBottomNavigation);
     final navigationRect = tester.getRect(navigation);
@@ -490,7 +547,9 @@ void main() {
   testWidgets('task screen shows tasks and opens the creation modal', (
     WidgetTester tester,
   ) async {
-    await tester.pumpWidget(const CodeTrainApp());
+    await tester.pumpWidget(
+      const CodeTrainApp(initiallyAuthenticated: true),
+    );
     final navigation = find.byType(CodeTrainBottomNavigation);
     final navigationRect = tester.getRect(navigation);
     await tester.tapAt(
@@ -594,7 +653,9 @@ void main() {
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
-    await tester.pumpWidget(const CodeTrainApp());
+    await tester.pumpWidget(
+      const CodeTrainApp(initiallyAuthenticated: true),
+    );
 
     final navigation = find.byType(CodeTrainBottomNavigation);
     final navigationRect = tester.getRect(navigation);
@@ -651,7 +712,9 @@ void main() {
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
-    await tester.pumpWidget(const CodeTrainApp());
+    await tester.pumpWidget(
+      const CodeTrainApp(initiallyAuthenticated: true),
+    );
 
     final navigation = find.byType(CodeTrainBottomNavigation);
     final navigationRect = tester.getRect(navigation);
