@@ -14,6 +14,28 @@
 
 * 新しい依存パッケージを追加する前に、Flutter / Dart 標準機能または既存依存で実現できないか確認する。既存の手段で実現可能な場合は、新規依存を追加しない。
 
+## API 連携方針
+
+* API の要件、エンドポイント、認証、JSON のフィールド名、エラー形式は [`docs/API_DESIGN.md`](docs/API_DESIGN.md) を正とし、実装前に必ず参照する。
+
+* バックエンド接続前はモックで実装してよいが、Widget にモックデータや API レスポンスの JSON を直接記述しない。データ取得は Repository を境界とし、API レスポンス DTO、ドメインモデル、表示用 Widget を分離する。
+
+* 将来の API 接続では、既存の画面や Widget を変更せずに API Client / Data Source と Repository の実装を差し替えられる構成を優先する。モック実装は API のレスポンス形状とドメインへの変換経路を確認できる形にする。
+
+* API 仕様に未確定の値や計算ロジックがある場合は、UI 層へ暗黙に埋め込まず、補助設定・変換処理として境界へ隔離する。仕様が確定した場合は [`docs/API_DESIGN.md`](docs/API_DESIGN.md) と機能仕様書を更新する。
+
+### API接続の配置と差し替え
+
+* API接続に関する具体的な実装は、対象 feature の `data/` 配下へ配置する。画面の `presentation/` から API Client、Data Source、DTO、または具体的な Repository 実装を直接 import しない。
+
+* API Client / Data Source は通信、認証、レスポンス取得を担当し、DTO はAPIレスポンスの構造を表現する。DTOからドメインモデルへの変換は変換処理または Repository 境界に隔離し、JSON の key やHTTP固有の型を UI 層へ漏らさない。
+
+* API版とモック版の Repository は同じ Repository 抽象を実装し、画面を変更せずに差し替えられるようにする。Repository の選択、API Client の生成、環境ごとの設定は `app/` などのComposition Rootで行い、画面Widget内で実装を選択しない。
+
+* API接続に必要な変更は、原則として `data/` のAPI Client・Data Source・DTO・変換処理と、Composition Rootの注入設定に限定する。API接続のために既存の表示Widgetへ通信処理やモック切替の分岐を追加しない。
+
+* APIレスポンスに存在しない表示情報や、複数エンドポイントから組み立てる表示値は、どのデータを使うかを Repository または変換処理で明示する。API仕様だけでは取得できない場合は、実装前に仕様書へ不足項目と利用するエンドポイントを記録する。
+
 ## 規約の適用範囲と優先順位
 
 規約が競合した場合は、次の優先順位で判断する。
@@ -34,6 +56,11 @@
 機能仕様書を追加・削除・変更した場合は、一覧ファイル [`docs/feature/README.md`](docs/feature/README.md) も更新し、機能名、用途、主な実装箇所が確認できる状態を維持する。
 
 Must Ask の確認待ちでコード・設定・依存関係を変更できない場合でも、仕様の整理、影響範囲の調査、`docs/feature/` への案の記録までは行ってよい。
+
+## テスト実行方針
+
+* Flutter のテスト（`flutter test`）は原則として実行しない。ユーザーから明示的に依頼された場合のみ実行する。
+* `flutter run`、`flutter analyze`、`flutter test`、`dart analyze`、`dart format` などのFlutter / Dart実行・検証コマンドは実行しない。動作確認・検証はユーザーが行う。
 
 ## Must Ask（事前確認必須）
 
