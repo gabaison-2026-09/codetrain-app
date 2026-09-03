@@ -13,6 +13,7 @@ class LearnQuestionView extends StatelessWidget {
     required this.isSubmitting,
     required this.errorMessage,
     required this.contentPadding,
+    required this.onExit,
     required this.onChoiceSelected,
     required this.onSubmit,
     required this.onNext,
@@ -26,6 +27,7 @@ class LearnQuestionView extends StatelessWidget {
   final bool isSubmitting;
   final String? errorMessage;
   final EdgeInsets contentPadding;
+  final VoidCallback onExit;
   final ValueChanged<String> onChoiceSelected;
   final VoidCallback onSubmit;
   final VoidCallback onNext;
@@ -45,6 +47,7 @@ class LearnQuestionView extends StatelessWidget {
                 _QuestionProgressHeader(
                   currentQuestionNumber: currentQuestionNumber,
                   feedbackInterval: feedbackInterval,
+                  onExit: onExit,
                 ),
                 const SizedBox(height: 28),
                 _QuestionHeading(question: question),
@@ -159,15 +162,28 @@ class _QuestionProgressHeader extends StatelessWidget {
   const _QuestionProgressHeader({
     required this.currentQuestionNumber,
     required this.feedbackInterval,
+    required this.onExit,
   });
 
   final int currentQuestionNumber;
   final int feedbackInterval;
+  final VoidCallback onExit;
 
   @override
   Widget build(BuildContext context) {
     return Row(
       children: [
+        Transform.translate(
+          offset: const Offset(-10, 0),
+          child: IconButton(
+            key: const ValueKey('learn-question-back'),
+            onPressed: onExit,
+            tooltip: '学習を終了',
+            color: const Color(0xff60606a),
+            icon: const Icon(Icons.arrow_back_rounded),
+          ),
+        ),
+        const SizedBox(width: 6),
         Expanded(
           child: ClipRRect(
             borderRadius: BorderRadius.circular(99),

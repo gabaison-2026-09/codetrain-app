@@ -841,7 +841,7 @@ void main() {
     await tester.tap(startButton);
     await tester.pump(const Duration(milliseconds: 600));
 
-    expect(find.byKey(const ValueKey('learn-question-back')), findsNothing);
+    expect(find.byKey(const ValueKey('learn-question-back')), findsOneWidget);
     expect(find.byType(CodeTrainBottomNavigation), findsNothing);
     expect(find.text('1 / 5'), findsOneWidget);
 
@@ -885,6 +885,55 @@ void main() {
     expect(find.byType(CodeTrainBottomNavigation), findsNothing);
     expect(find.text('1 / 5'), findsOneWidget);
     expect(find.text('map の戻り値'), findsOneWidget);
+  });
+
+  testWidgets('learner can stop an ongoing learning session', (
+    WidgetTester tester,
+  ) async {
+    tester.view.physicalSize = const Size(800, 1800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    await tester.pumpWidget(
+      const CodeTrainApp(initiallyAuthenticated: true),
+    );
+
+    final navigation = find.byType(CodeTrainBottomNavigation);
+    final navigationRect = tester.getRect(navigation);
+    await tester.tapAt(
+      Offset(
+        navigationRect.left + navigationRect.width * 302 / 973,
+        navigationRect.center.dy,
+      ),
+    );
+    await tester.pump(const Duration(milliseconds: 600));
+
+    final arrayNode = find.byKey(const ValueKey('learn-node-node-arrays'));
+    await tester.ensureVisible(arrayNode);
+    await tester.tap(arrayNode);
+    final startButton = find.byKey(const ValueKey('learn-start-button'));
+    await tester.ensureVisible(startButton);
+    await tester.tap(startButton);
+    await tester.pump(const Duration(milliseconds: 600));
+
+    final exitButton = find.byKey(const ValueKey('learn-question-back'));
+    expect(exitButton, findsOneWidget);
+    await tester.tap(exitButton);
+    await tester.pump();
+    expect(find.text('学習をやめますか？'), findsOneWidget);
+    expect(find.text('今回の学習状況は破棄されます。'), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('learn-exit-cancel')));
+    await tester.pump();
+    expect(find.text('1 / 5'), findsOneWidget);
+
+    await tester.tap(exitButton);
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('learn-exit-confirm')));
+    await tester.pump();
+    expect(find.byKey(const ValueKey('learn-question-back')), findsNothing);
+    expect(find.byKey(const ValueKey('learn-start-button')), findsOneWidget);
+    expect(find.byType(CodeTrainBottomNavigation), findsOneWidget);
   });
 }
 

@@ -226,6 +226,100 @@ class _LearnPageState extends State<LearnPage> {
     });
   }
 
+  Future<void> _handleExitLearning() async {
+    if (_isSubmitting) return;
+
+    final shouldExit = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: Colors.white,
+        surfaceTintColor: Colors.transparent,
+        elevation: 8,
+        insetPadding: const EdgeInsets.symmetric(horizontal: 24),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: const BorderSide(color: Color(0xffe1e1e7)),
+        ),
+        titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 8),
+        contentPadding: const EdgeInsets.fromLTRB(24, 0, 24, 4),
+        actionsPadding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+        title: const Text('学習をやめますか？'),
+        titleTextStyle: const TextStyle(
+          color: Color(0xff111116),
+          fontFamily: 'Noto Sans Japanese',
+          fontSize: 19,
+          fontWeight: FontWeight.w800,
+        ),
+        content: const Text(
+          '今回の学習状況は破棄されます。',
+          style: TextStyle(
+            color: Color(0xff60606a),
+            fontFamily: 'Noto Sans Japanese',
+            fontSize: 14,
+            height: 1.6,
+          ),
+        ),
+        actions: [
+          Row(
+            children: [
+              Expanded(
+                child: SizedBox(
+                  height: 50,
+                  child: FilledButton(
+                    key: const ValueKey('learn-exit-confirm'),
+                    onPressed: () => Navigator.of(context).pop(true),
+                    style: FilledButton.styleFrom(
+                      backgroundColor: const Color(0xff6263d9),
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                    ),
+                    child: const Text(
+                      'やめる',
+                      style: TextStyle(
+                        fontFamily: 'Noto Sans Japanese',
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: SizedBox(
+                  height: 50,
+                  child: OutlinedButton(
+                    key: const ValueKey('learn-exit-cancel'),
+                    onPressed: () => Navigator.of(context).pop(false),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: const Color(0xff111116),
+                      side: const BorderSide(color: Color(0xffcfcfd7)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                    ),
+                    child: const Text(
+                      '続ける',
+                      style: TextStyle(
+                        fontFamily: 'Noto Sans Japanese',
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+    if (!mounted || shouldExit != true) return;
+    _handleBackToList();
+  }
+
   void _handleContinueAfterFeedback() {
     final questions = _questions;
     if (questions == null) return;
@@ -301,6 +395,7 @@ class _LearnPageState extends State<LearnPage> {
             isSubmitting: _isSubmitting,
             errorMessage: _errorMessage,
             contentPadding: contentPadding,
+            onExit: _handleExitLearning,
             onChoiceSelected: (key) {
               setState(() {
                 _selectedKey = key;
