@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../features/authentication/data/mock_auth_repository.dart';
+import '../features/authentication/domain/auth_repository.dart';
+import '../features/authentication/presentation/login_page.dart';
 import '../features/calendar/data/mock_calendar_repository.dart';
 import '../features/calendar/domain/calendar_repository.dart';
 import '../features/friend/data/mock_friend_repository.dart';
@@ -16,9 +19,11 @@ import '../features/task/data/mock_task_launcher.dart';
 import '../features/task/domain/task_launcher.dart';
 import '../features/task/domain/task_repository.dart';
 
-class CodeTrainApp extends StatelessWidget {
+class CodeTrainApp extends StatefulWidget {
   const CodeTrainApp({
     super.key,
+    this.authRepository,
+    this.initiallyAuthenticated = false,
     this.topNavigationRepository,
     this.homeRepository,
     this.friendRepository,
@@ -28,6 +33,8 @@ class CodeTrainApp extends StatelessWidget {
     this.calendarRepository,
   });
 
+  final AuthRepository? authRepository;
+  final bool initiallyAuthenticated;
   final TopNavigationRepository? topNavigationRepository;
   final HomeDashboardRepository? homeRepository;
   final FriendRepository? friendRepository;
@@ -37,21 +44,39 @@ class CodeTrainApp extends StatelessWidget {
   final CalendarRepository? calendarRepository;
 
   @override
+  State<CodeTrainApp> createState() => _CodeTrainAppState();
+}
+
+class _CodeTrainAppState extends State<CodeTrainApp> {
+  late final AuthRepository _authRepository;
+  late bool _isAuthenticated;
+
+  @override
+  void initState() {
+    super.initState();
+    _authRepository = widget.authRepository ?? const MockAuthRepository();
+    _isAuthenticated = widget.initiallyAuthenticated;
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final usesMockTopNavigation = topNavigationRepository == null;
-    final usesMockHome = homeRepository == null;
-    final usesMockLearn = learnRepository == null;
+    final usesMockTopNavigation = widget.topNavigationRepository == null;
+    final usesMockHome = widget.homeRepository == null;
+    final usesMockLearn = widget.learnRepository == null;
     final resolvedTopNavigationRepository =
-        topNavigationRepository ?? const MockTopNavigationRepository();
+        widget.topNavigationRepository ?? const MockTopNavigationRepository();
     final resolvedHomeRepository =
-        homeRepository ?? const MockHomeDashboardRepository();
-    final resolvedFriendRepository = friendRepository ?? MockFriendRepository();
-    final resolvedTaskLauncher = taskLauncher ?? const MockTaskLauncher();
+        widget.homeRepository ?? const MockHomeDashboardRepository();
+    final resolvedFriendRepository =
+        widget.friendRepository ?? MockFriendRepository();
+    final resolvedTaskLauncher =
+        widget.taskLauncher ?? const MockTaskLauncher();
     final resolvedLearnRepository =
-        learnRepository ?? const MockLearnRepository();
-    final resolvedTaskRepository = taskRepository ?? MockTaskRepository();
+        widget.learnRepository ?? const MockLearnRepository();
+    final resolvedTaskRepository =
+        widget.taskRepository ?? MockTaskRepository();
     final resolvedCalendarRepository =
-        calendarRepository ?? const MockCalendarRepository();
+        widget.calendarRepository ?? const MockCalendarRepository();
 
     return MaterialApp(
       title: 'CodeTrain',
@@ -61,24 +86,29 @@ class CodeTrainApp extends StatelessWidget {
         fontFamily: 'Roboto',
         useMaterial3: true,
       ),
-      home: HomePage(
-        topNavigationRepository: resolvedTopNavigationRepository,
-        homeRepository: resolvedHomeRepository,
-        friendRepository: resolvedFriendRepository,
-        taskLauncher: resolvedTaskLauncher,
-        learnRepository: resolvedLearnRepository,
-        taskRepository: resolvedTaskRepository,
-        calendarRepository: resolvedCalendarRepository,
-        initialTopNavigationStatus: usesMockTopNavigation
-            ? MockTopNavigationRepository.mockStatus
-            : null,
-        initialHomeDashboard: usesMockHome
-            ? MockHomeDashboardRepository.dashboardFor(DateTime.now())
-            : null,
-        initialLearnCatalog: usesMockLearn
-            ? MockLearnRepository.mockCatalog
-            : null,
-      ),
+      home: _isAuthenticated
+          ? HomePage(
+              topNavigationRepository: resolvedTopNavigationRepository,
+              homeRepository: resolvedHomeRepository,
+              friendRepository: resolvedFriendRepository,
+              taskLauncher: resolvedTaskLauncher,
+              learnRepository: resolvedLearnRepository,
+              taskRepository: resolvedTaskRepository,
+              calendarRepository: resolvedCalendarRepository,
+              initialTopNavigationStatus: usesMockTopNavigation
+                  ? MockTopNavigationRepository.mockStatus
+                  : null,
+              initialHomeDashboard: usesMockHome
+                  ? MockHomeDashboardRepository.dashboardFor(DateTime.now())
+                  : null,
+              initialLearnCatalog: usesMockLearn
+                  ? MockLearnRepository.mockCatalog
+                  : null,
+            )
+          : LoginPage(
+              repository: _authRepository,
+              onSignedIn: (_) => setState(() => _isAuthenticated = true),
+            ),
     );
   }
 }

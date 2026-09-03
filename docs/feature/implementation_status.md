@@ -7,6 +7,7 @@
 ## 全体状況
 
 - アプリの起動と画面表示は実装済みです。
+- 起動時のログイン画面、専用のアカウント新規作成画面、メール／パスワードとGoogleのモック認証、認証後のホーム表示を実装済みです。認証情報の保存と外部送信は行いません。
 - 現在の画面データ取得・保存はすべてモックRepositoryを使用しています。FlutterアプリからAPIへ通信する具体的なAPI Client / Data Source / API版Repositoryはまだありません。
 - `CodeTrainApp` がComposition RootとしてRepositoryを解決し、`HomePage` 以下へ注入します。API版を実装した場合も、原則として `lib/app/app.dart` の注入先を差し替えます。
 - APIレスポンスをアプリ内モデルへ変換するDTOは、トップナビゲーション、カレンダー、学習、タスク、フレンドの一部に実装済みです。
@@ -16,6 +17,7 @@
 
 | 機能 | 現在の実装 | 現在のデータ元 | API接続時の候補 | 主な実装箇所 |
 | --- | --- | --- | --- | --- |
+| 認証 | メール／パスワード入力、パスワード表示切り替え、Googleログイン、アカウント新規作成、入力検証、認証後のホーム表示を実装済み | `MockAuthRepository` | Firebase Authenticationを実装するRepositoryへ差し替え。Firebase IDトークンをBearerトークンに使用する想定 | `lib/features/authentication/`、`lib/app/app.dart` |
 | アプリ全体・タブ切り替え | Calendar / Learn / Home / Task / Friend の5タブ、260msのフェード＋横スライド、トップ・ボトムナビゲーションの共通表示を実装済み | 画面内の状態 | API不要 | `lib/features/home/presentation/home_page.dart`、`lib/shared/widgets/` |
 | トップナビゲーション | レベル、経験値進捗、ハートを表示済み。ホーム画面の全タブ共通レイアウト上部に表示 | `MockTopNavigationRepository` | `GET /v1/me` の `progress` | `lib/shared/widgets/code_train_top_navigation.dart`、`lib/features/home/` |
 | ホームダッシュボード | 日付、連続学習日数、当日のタスク消化ゲージ、月間進捗、最大3件のホーム対象タスク、スワイプ切り替え、言語アイコン、開始操作を実装済み | `MockHomeDashboardRepository`、`MockTaskRepository` | `GET /v1/home`。連続学習日数は `GET /v1/me` の `progress.streak_days` を利用する想定 | `lib/features/home/presentation/home_tab_page.dart`、`lib/features/home/domain/` |
@@ -45,9 +47,19 @@ API版へ接続するときは、対象featureの `data/` にAPI Client / Data S
 3. `TopNavigationRepository`、`HomeDashboardRepository`、`CalendarRepository`、`LearnRepository`、`TaskRepository`、`FriendRepository` のAPI版実装を作成する。
 4. タスク開始用に `TaskLauncher` のAPI版実装を作成する。開始APIの具体仕様は現在未確定です。
 5. `lib/app/app.dart` でモック実装をAPI版へ差し替える。
-6. 認証、共通エラー、タイムアウトなどはAPI Client / Data Source側で統一して扱い、画面へはRepositoryの結果またはドメイン用エラーとして渡す。
+6. Firebase Authentication版の `AuthRepository` が返すIDトークンをAPI Clientへ渡す。
+7. 認証、共通エラー、タイムアウトなどはAPI Client / Data Source側で統一して扱い、画面へはRepositoryの結果またはドメイン用エラーとして渡す。
 
 ## 機能別の接続詳細
+
+### 認証
+
+- Repository: `AuthRepository.signInWithEmail()`、`signInWithGoogle()`、`createAccountWithEmail()`
+- モック: `MockAuthRepository`
+- 現在は認証状態をアプリ実行中だけ保持し、資格情報を保存・送信しません。
+- Firebase接続時は同じRepository interfaceを実装し、Firebase IDトークンを `AuthSession.idToken` として返します。
+- API設計上はCognito JWTが指定されているため、Firebase接続前にバックエンドのトークン検証方式をFirebase IDトークンへ変更するか確定する必要があります。
+- 認証後の `GET /v1/me` と、未登録時の `POST /v1/me` は未接続です。
 
 ### トップナビゲーション
 
@@ -124,7 +136,7 @@ API版へ接続するときは、対象featureの `data/` にAPI Client / Data S
 
 ## API接続前に確認が必要な事項
 
-- API Clientで使用する通信・認証方式。API設計上の認証は `Authorization: Bearer <Cognito JWT>`、ローカル開発時は `X-Dev-User` です。
+- API Clientで使用する通信・認証方式。アプリはFirebase Authenticationを予定していますが、API設計上は `Authorization: Bearer <Cognito JWT>` のため、接続前にFirebase IDトークンへ統一するか確定する必要があります。
 - `GET /v1/me` で経験値進捗率とハート上限をどのように返すか。
 - XP配点、ハート回復、streak判定タイムゾーン、SRS更新規則。
 - ホームの再生ボタンおよびタスク画面の開始ボタンが呼び出す開始API。
