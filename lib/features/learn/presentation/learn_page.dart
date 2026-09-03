@@ -18,6 +18,7 @@ class LearnPage extends StatefulWidget {
     this.startLearningRequest,
     this.onStartLearningRequestConsumed,
     this.onQuestionViewChanged,
+    this.onTaskCompleted,
   });
 
   final LearnRepository repository;
@@ -25,6 +26,7 @@ class LearnPage extends StatefulWidget {
   final ValueListenable<LearnTaskStartRequest?>? startLearningRequest;
   final VoidCallback? onStartLearningRequestConsumed;
   final ValueChanged<bool>? onQuestionViewChanged;
+  final VoidCallback? onTaskCompleted;
 
   @override
   State<LearnPage> createState() => _LearnPageState();
@@ -55,6 +57,8 @@ class _LearnPageState extends State<LearnPage> {
   DateTime? _questionStartedAt;
   var _isLoadingQuestions = false;
   var _isSubmitting = false;
+  var _isTaskBasedSession = false;
+  var _hasReportedTaskCompletion = false;
   String? _errorMessage;
 
   @override
@@ -139,6 +143,8 @@ class _LearnPageState extends State<LearnPage> {
         _isShowingFeedback = false;
         _questionStartedAt = DateTime.now();
         _isLoadingQuestions = false;
+        _isTaskBasedSession = request?.isTaskBased == true;
+        _hasReportedTaskCompletion = false;
       });
       widget.onQuestionViewChanged?.call(true);
     } catch (_) {
@@ -208,6 +214,10 @@ class _LearnPageState extends State<LearnPage> {
     final questions = _questions;
     if (questions == null) return;
     if (_answeredQuestionCount == _feedbackInterval) {
+      if (_isTaskBasedSession && !_hasReportedTaskCompletion) {
+        _hasReportedTaskCompletion = true;
+        widget.onTaskCompleted?.call();
+      }
       HapticFeedback.selectionClick();
       setState(() {
         _feedbackMessage =
@@ -333,6 +343,8 @@ class _LearnPageState extends State<LearnPage> {
       _isShowingFeedback = false;
       _questionStartedAt = DateTime.now();
       _errorMessage = null;
+      _isTaskBasedSession = false;
+      _hasReportedTaskCompletion = false;
     });
     widget.onQuestionViewChanged?.call(true);
   }

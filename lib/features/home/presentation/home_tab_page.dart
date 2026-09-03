@@ -19,6 +19,8 @@ class HomeTabPage extends StatefulWidget {
     required this.taskRepository,
     required this.taskLauncher,
     this.taskSelectionVersion,
+    this.taskCompletionVersion,
+    this.onDashboardLoaded,
     this.isVisible,
     this.initialDashboard,
     this.onStartLearning,
@@ -28,6 +30,8 @@ class HomeTabPage extends StatefulWidget {
   final TaskRepository taskRepository;
   final TaskLauncher taskLauncher;
   final ValueListenable<int>? taskSelectionVersion;
+  final ValueListenable<int>? taskCompletionVersion;
+  final ValueChanged<HomeDashboard>? onDashboardLoaded;
   final ValueListenable<bool>? isVisible;
   final HomeDashboard? initialDashboard;
   final ValueChanged<LearningTask?>? onStartLearning;
@@ -97,6 +101,8 @@ class _HomeTabPageState extends State<HomeTabPage> {
               taskLauncher: widget.taskLauncher,
               studyTasks: selectedTasks,
               taskConfigurations: configuredTasks,
+              taskCompletionVersion: widget.taskCompletionVersion,
+              onDashboardLoaded: widget.onDashboardLoaded,
               isVisible: widget.isVisible,
               onStartLearning: widget.onStartLearning,
               onOpenLicenses: () {
@@ -158,6 +164,8 @@ class _HomeDashboardView extends StatefulWidget {
     required this.taskLauncher,
     required this.studyTasks,
     this.taskConfigurations,
+    this.taskCompletionVersion,
+    this.onDashboardLoaded,
     this.isVisible,
     this.onStartLearning,
     required this.onOpenLicenses,
@@ -167,6 +175,8 @@ class _HomeDashboardView extends StatefulWidget {
   final TaskLauncher taskLauncher;
   final List<HomeStudyTask> studyTasks;
   final List<LearningTask>? taskConfigurations;
+  final ValueListenable<int>? taskCompletionVersion;
+  final ValueChanged<HomeDashboard>? onDashboardLoaded;
   final ValueListenable<bool>? isVisible;
   final ValueChanged<LearningTask?>? onStartLearning;
   final VoidCallback onOpenLicenses;
@@ -180,10 +190,42 @@ class _HomeDashboardViewState extends State<_HomeDashboardView> {
   var _swipeDirection = 1;
   var _isStartingTask = false;
   HomeStudyTask? _startingTask;
+  late int _displayedCompletedTasks;
+  late int _displayedStreakDays;
+  var _lastTaskCompletionVersion = 0;
+  var _streakProgressAnimationToken = 0;
+  var _streakProgressAnimationStartTasks = 0;
+  var _hasPendingStreakProgressAnimation = false;
 
   @override
   void initState() {
     super.initState();
+    widget.onDashboardLoaded?.call(widget.dashboard);
+    final completionVersion = widget.taskCompletionVersion?.value ?? 0;
+    _lastTaskCompletionVersion = completionVersion;
+    final initialCompletedTasks = _clampCompletedTasks(
+      widget.dashboard.taskProgress.completedTasks,
+      widget.dashboard.taskProgress.totalTasks,
+    );
+    _displayedCompletedTasks = _clampCompletedTasks(
+      initialCompletedTasks + completionVersion,
+      widget.dashboard.taskProgress.totalTasks,
+    );
+    final shouldIncrementInitialStreak =
+        widget.dashboard.taskProgress.totalTasks > 0 &&
+        initialCompletedTasks < widget.dashboard.taskProgress.totalTasks &&
+        _displayedCompletedTasks >= widget.dashboard.taskProgress.totalTasks;
+    _displayedStreakDays =
+        widget.dashboard.streakDays + (shouldIncrementInitialStreak ? 1 : 0);
+    _streakProgressAnimationStartTasks = initialCompletedTasks;
+    if (_displayedCompletedTasks > initialCompletedTasks) {
+      if (widget.isVisible?.value != false) {
+        _streakProgressAnimationToken = 1;
+      } else {
+        _hasPendingStreakProgressAnimation = true;
+      }
+    }
+    widget.taskCompletionVersion?.addListener(_handleTaskCompletionChanged);
     widget.isVisible?.addListener(_handleVisibilityChanged);
   }
 
@@ -193,6 +235,14 @@ class _HomeDashboardViewState extends State<_HomeDashboardView> {
     if (oldWidget.isVisible != widget.isVisible) {
       oldWidget.isVisible?.removeListener(_handleVisibilityChanged);
       widget.isVisible?.addListener(_handleVisibilityChanged);
+    }
+    if (oldWidget.taskCompletionVersion != widget.taskCompletionVersion) {
+      oldWidget.taskCompletionVersion?.removeListener(
+        _handleTaskCompletionChanged,
+      );
+      _lastTaskCompletionVersion =
+          widget.taskCompletionVersion?.value ?? _lastTaskCompletionVersion;
+      widget.taskCompletionVersion?.addListener(_handleTaskCompletionChanged);
     }
 
     final taskCount = widget.studyTasks.length;
@@ -205,18 +255,66 @@ class _HomeDashboardViewState extends State<_HomeDashboardView> {
 
   @override
   void dispose() {
+    widget.taskCompletionVersion?.removeListener(_handleTaskCompletionChanged);
     widget.isVisible?.removeListener(_handleVisibilityChanged);
     super.dispose();
   }
 
   void _handleVisibilityChanged() {
-    if (!mounted || widget.isVisible?.value != true || !_isStartingTask) {
+    if (!mounted || widget.isVisible?.value != true) {
       return;
     }
+    if (!_isStartingTask && !_hasPendingStreakProgressAnimation) return;
     setState(() {
-      _isStartingTask = false;
-      _startingTask = null;
+      if (_isStartingTask) {
+        _isStartingTask = false;
+        _startingTask = null;
+      }
+      if (_hasPendingStreakProgressAnimation) {
+        _hasPendingStreakProgressAnimation = false;
+        _streakProgressAnimationToken++;
+      }
     });
+  }
+
+  void _handleTaskCompletionChanged() {
+    final completionVersion = widget.taskCompletionVersion?.value;
+    if (!mounted || completionVersion == null) return;
+    final completionCount =
+        completionVersion - _lastTaskCompletionVersion;
+    if (completionCount <= 0) return;
+    _lastTaskCompletionVersion = completionVersion;
+
+    final previousCompletedTasks = _displayedCompletedTasks;
+    final nextCompletedTasks = _clampCompletedTasks(
+      previousCompletedTasks + completionCount,
+      widget.dashboard.taskProgress.totalTasks,
+    );
+    if (nextCompletedTasks == previousCompletedTasks) return;
+
+    final isVisible = widget.isVisible?.value != false;
+    final shouldIncrementStreak =
+        widget.dashboard.taskProgress.totalTasks > 0 &&
+        previousCompletedTasks < widget.dashboard.taskProgress.totalTasks &&
+        nextCompletedTasks >= widget.dashboard.taskProgress.totalTasks;
+    setState(() {
+      _displayedCompletedTasks = nextCompletedTasks;
+      if (shouldIncrementStreak) {
+        _displayedStreakDays++;
+      }
+      if (isVisible) {
+        _streakProgressAnimationStartTasks = previousCompletedTasks;
+        _streakProgressAnimationToken++;
+      } else if (!_hasPendingStreakProgressAnimation) {
+        _streakProgressAnimationStartTasks = previousCompletedTasks;
+        _hasPendingStreakProgressAnimation = true;
+      }
+    });
+  }
+
+  static int _clampCompletedTasks(int completedTasks, int totalTasks) {
+    final safeTotal = totalTasks.clamp(0, 5).toInt();
+    return completedTasks.clamp(0, safeTotal).toInt();
   }
 
   static const _purple = Color(0xff6263d9);
@@ -333,6 +431,11 @@ class _HomeDashboardViewState extends State<_HomeDashboardView> {
             children: [
               _DateAndStreakRow(
                 dashboard: dashboard,
+                completedTasks: _displayedCompletedTasks,
+                streakProgressAnimationToken: _streakProgressAnimationToken,
+                streakProgressAnimationStartTasks:
+                    _streakProgressAnimationStartTasks,
+                streakDays: _displayedStreakDays,
                 purple: _purple,
                 orange: _orange,
               ),
@@ -427,11 +530,19 @@ class _HomeDashboardViewState extends State<_HomeDashboardView> {
 class _DateAndStreakRow extends StatelessWidget {
   const _DateAndStreakRow({
     required this.dashboard,
+    required this.completedTasks,
+    required this.streakProgressAnimationToken,
+    required this.streakProgressAnimationStartTasks,
+    required this.streakDays,
     required this.purple,
     required this.orange,
   });
 
   final HomeDashboard dashboard;
+  final int completedTasks;
+  final int streakProgressAnimationToken;
+  final int streakProgressAnimationStartTasks;
+  final int streakDays;
   final Color purple;
   final Color orange;
 
@@ -501,10 +612,12 @@ class _DateAndStreakRow extends StatelessWidget {
         ),
         const SizedBox(width: 10),
         _StreakProgressArc(
-          completedTasks: dashboard.taskProgress.completedTasks,
+          completedTasks: completedTasks,
           totalTasks: dashboard.taskProgress.totalTasks,
-          streakDays: dashboard.streakDays,
+          streakDays: streakDays,
           color: orange,
+          animationToken: streakProgressAnimationToken,
+          animationStartCompletedTasks: streakProgressAnimationStartTasks,
         ),
       ],
     );
@@ -517,18 +630,30 @@ class _StreakProgressArc extends StatelessWidget {
     required this.totalTasks,
     required this.streakDays,
     required this.color,
+    required this.animationToken,
+    required this.animationStartCompletedTasks,
   });
 
   final int completedTasks;
   final int totalTasks;
   final int streakDays;
   final Color color;
+  final int animationToken;
+  final int animationStartCompletedTasks;
 
   @override
   Widget build(BuildContext context) {
     final safeTotal = totalTasks.clamp(0, 5).toInt();
     final safeCompleted = completedTasks.clamp(0, safeTotal).toInt();
     final progress = safeTotal == 0 ? 0.0 : safeCompleted / safeTotal;
+    final safeAnimationStart = animationStartCompletedTasks
+        .clamp(0, safeCompleted)
+        .toInt();
+    final animationStartProgress = safeTotal == 0
+        ? 0.0
+        : safeAnimationStart / safeTotal;
+    final shouldAnimate = animationToken > 0 &&
+        animationStartProgress < progress;
 
     return SizedBox(
       width: 124,
@@ -536,11 +661,25 @@ class _StreakProgressArc extends StatelessWidget {
       child: Stack(
         children: [
           Positioned.fill(
-            child: CustomPaint(
-              painter: _StreakProgressArcPainter(
-                progress: progress,
-                color: color,
+            child: TweenAnimationBuilder<double>(
+              key: ValueKey(
+                'streak-progress-$animationToken-$safeCompleted',
               ),
+              tween: Tween<double>(
+                begin: shouldAnimate ? animationStartProgress : progress,
+                end: progress,
+              ),
+              duration: const Duration(milliseconds: 850),
+              curve: Curves.easeOutCubic,
+              builder: (context, animatedProgress, child) {
+                return CustomPaint(
+                  painter: _StreakProgressArcPainter(
+                    progress: animatedProgress,
+                    color: color,
+                  ),
+                  child: child,
+                );
+              },
               child: Center(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
