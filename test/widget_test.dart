@@ -368,7 +368,7 @@ void main() {
         expect(find.byIcon(Icons.play_arrow_rounded), findsOneWidget);
         expect(find.text('Home screen'), findsNothing);
       } else if (tab.index == 1) {
-        expect(find.text('何を学習する？'), findsOneWidget);
+        expect(find.text('学習'), findsOneWidget);
         expect(find.text('Learn screen'), findsNothing);
       } else if (tab.index == 3) {
         expect(find.text('タスク'), findsOneWidget);
@@ -766,7 +766,7 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 600));
 
-    expect(find.text('何を学習する？'), findsOneWidget);
+    expect(find.text('学習'), findsOneWidget);
     expect(find.text('JavaScript 基礎'), findsOneWidget);
 
     final arrayNode = find.byKey(const ValueKey('learn-node-node-arrays'));

@@ -88,12 +88,12 @@ class _LearnSelectionViewState extends State<LearnSelectionView> {
         padding: widget.contentPadding,
         child: Center(
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 680),
+            constraints: const BoxConstraints(maxWidth: 720),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const _SelectionHeader(),
-                const SizedBox(height: 24),
+                const _SelectionTitle(),
+                const SizedBox(height: 20),
                 TextField(
                   key: const ValueKey('learn-search-field'),
                   controller: _searchController,
@@ -224,10 +224,11 @@ class _LearnSelectionViewState extends State<LearnSelectionView> {
                         ? null
                         : widget.onStart,
                     style: FilledButton.styleFrom(
-                      backgroundColor: const Color(0xff111116),
-                      disabledBackgroundColor: const Color(0xffd8d8df),
+                      backgroundColor: const Color(0xff6263d9),
+                      foregroundColor: Colors.white,
+                      minimumSize: const Size.fromHeight(52),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(2),
+                        borderRadius: BorderRadius.circular(14),
                       ),
                     ),
                     child: widget.isLoading
@@ -265,19 +266,18 @@ class _LearnSelectionViewState extends State<LearnSelectionView> {
   }
 }
 
-class _SelectionHeader extends StatelessWidget {
-  const _SelectionHeader();
+class _SelectionTitle extends StatelessWidget {
+  const _SelectionTitle();
 
   @override
   Widget build(BuildContext context) {
     return const Text(
-      '何を学習する？',
+      '学習',
       style: TextStyle(
-        color: Color(0xff111116),
+        color: Color(0xff222229),
         fontFamily: 'Noto Sans Japanese',
-        fontSize: 27,
-        fontWeight: FontWeight.w800,
-        letterSpacing: 0.5,
+        fontSize: 30,
+        fontWeight: FontWeight.w600,
       ),
     );
   }
