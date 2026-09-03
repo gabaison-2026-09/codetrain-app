@@ -38,6 +38,28 @@ class MockCalendarRepository implements CalendarRepository {
               totalSlots: 3,
               completedSlots: partialDays.contains(day) ? 1 : 3,
               completed: !partialDays.contains(day),
+              tasks: [
+                CalendarTaskActivity(
+                  id: 'task-typescript-basics',
+                  name: 'TypeScript 基礎',
+                  totalQuestions: 3,
+                  completedQuestions: partialDays.contains(day) ? 1 : 3,
+                  contents: const [
+                    CalendarTaskContent(
+                      questionType: CalendarQuestionType.codeReading,
+                      language: 'typescript',
+                      difficulty: 1,
+                      questionCount: 2,
+                    ),
+                    CalendarTaskContent(
+                      questionType: CalendarQuestionType.outputPrediction,
+                      language: '',
+                      difficulty: 2,
+                      questionCount: 1,
+                    ),
+                  ],
+                ),
+              ],
             ),
       ],
       streakDays: 5,

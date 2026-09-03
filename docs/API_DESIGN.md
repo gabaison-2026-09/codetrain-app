@@ -557,8 +557,41 @@
 ```json
 {
   "days": [
-    {"date": "2026-09-01", "total_slots": 3, "completed_slots": 3, "completed": true},
-    {"date": "2026-09-02", "total_slots": 3, "completed_slots": 1, "completed": false}
+    {
+      "date": "2026-09-01",
+      "total_slots": 3,
+      "completed_slots": 3,
+      "completed": true,
+      "tasks": [
+        {
+          "task_id": "uuid",
+          "name": "TypeScript 基礎",
+          "total_questions": 3,
+          "completed_questions": 3,
+          "contents": [
+            {
+              "question_type": "code_reading",
+              "language": "typescript",
+              "difficulty": 1,
+              "question_count": 2
+            },
+            {
+              "question_type": "output_prediction",
+              "language": "",
+              "difficulty": 2,
+              "question_count": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "date": "2026-09-02",
+      "total_slots": 3,
+      "completed_slots": 1,
+      "completed": false,
+      "tasks": []
+    }
   ],
   "streak_days": 5,
   "last_studied_on": "2026-09-01"
@@ -566,6 +599,9 @@
 ```
 - `completed` = 当日の全 `daily_task` 行が `completed_at IS NOT NULL`（[DB_SCHEMA.md](DB_SCHEMA.md) §5 `daily_task` 備考）
 - `days` は `daily_task` 行が存在する日のみ（未アクセスの日は配列に含まれない）
+- `tasks` は当日に割り当てられたタスク単位の学習内容と問題数を返す。タスク画面で設定した問題種別・言語・難易度を `contents` に集約し、同じ組み合わせの件数を `question_count` とする。
+- `total_questions` / `completed_questions` はタスク単位の問題数と完了数を返す。過去日の表示が現在のタスク編集に影響されないよう、当日割当時の設定または `daily_task` と問題情報から復元した値を使用する。
+- タスク単位APIの `task_id` / `name` が確定するまでは `tasks` の実装も保留とし、API接続前に両方の契約を一致させる。
 - `streak_days` は §8 のクエリ（gaps-and-islands）による逆算値、または `user_progress.streak_days` キャッシュのいずれか（実装時に選択。値は一致する想定）
 
 ---

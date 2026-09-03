@@ -242,6 +242,22 @@ void main() {
           'total_slots': 3,
           'completed_slots': 1,
           'completed': false,
+          'tasks': [
+            {
+              'task_id': 'task-1',
+              'name': 'TypeScript 基礎',
+              'total_questions': 3,
+              'completed_questions': 1,
+              'contents': [
+                {
+                  'question_type': 'code_reading',
+                  'language': 'typescript',
+                  'difficulty': 1,
+                  'question_count': 2,
+                },
+              ],
+            },
+          ],
         },
       ],
       'streak_days': 5,
@@ -251,6 +267,9 @@ void main() {
     expect(activity.days.single.date, DateTime(2026, 8, 19));
     expect(activity.days.single.studied, isTrue);
     expect(activity.days.single.completed, isFalse);
+    expect(activity.days.single.tasks.single.name, 'TypeScript 基礎');
+    expect(activity.days.single.tasks.single.totalQuestions, 3);
+    expect(activity.days.single.tasks.single.contents.single.questionCount, 2);
     expect(activity.streakDays, 5);
   });
 
@@ -275,14 +294,30 @@ void main() {
 
     expect(find.text('2026年8月'), findsOneWidget);
     expect(find.byKey(const ValueKey('calendar-month-grid')), findsOneWidget);
+    final calendarHeightBeforeSelection = tester
+        .getSize(find.byKey(const ValueKey('calendar-month-grid')))
+        .height;
 
     await tester.tap(find.byKey(const ValueKey('calendar-day-19')));
     await tester.pump();
+    final calendarHeightAfterSelection = tester
+        .getSize(find.byKey(const ValueKey('calendar-month-grid')))
+        .height;
+    expect(calendarHeightAfterSelection, calendarHeightBeforeSelection);
     expect(
       find.byKey(const ValueKey('calendar-selected-day-detail')),
       findsOneWidget,
     );
     expect(find.text('1 / 3'), findsOneWidget);
+    expect(find.text('TypeScript 基礎'), findsOneWidget);
+    expect(find.text('1 / 3問'), findsOneWidget);
+    expect(find.textContaining('コード読解・TypeScript・Lv.1'), findsOneWidget);
+    expect(
+      find.byKey(
+        const ValueKey('calendar-task-content-task-typescript-basics-0'),
+      ),
+      findsOneWidget,
+    );
 
     await tester.tap(find.byKey(const ValueKey('calendar-next-month')));
     await tester.pumpAndSettle();

@@ -21,7 +21,7 @@
 | ホームダッシュボード | 日付、連続学習日数、当日のタスク消化ゲージ、月間進捗、最大3件のホーム対象タスク、スワイプ切り替え、言語アイコン、開始操作を実装済み | `MockHomeDashboardRepository`、`MockTaskRepository` | `GET /v1/home`。連続学習日数は `GET /v1/me` の `progress.streak_days` を利用する想定 | `lib/features/home/presentation/home_tab_page.dart`、`lib/features/home/domain/` |
 | 学習 | スキル／学習項目の検索・絞り込み、学習開始、四択回答、正誤・正解・解説・XP表示、5問ごとのフィードバック、直近5問の振り返りを実装済み | `MockLearnRepository` | `GET /v1/skills`、`GET /v1/questions?skill_node_id=...`、必要に応じて `GET /v1/questions/{id}`、回答時に `POST /v1/questions/{id}/attempts` | `lib/features/learn/presentation/`、`lib/features/learn/domain/`、`lib/features/learn/data/` |
 | タスク管理 | 複数タスクの一覧、開始、ホーム対象の最大3件選択、作成、編集、5スロット設定、削除を実装済み | `MockTaskRepository`、開始通知は `MockTaskLauncher` | 選択肢は `GET /v1/task-slots/options`。ただし一覧・保存・削除は現行 `/v1/task-slots` では複数タスクを表現できず、タスク単位APIの追加が必要 | `lib/features/task/presentation/task_page.dart`、`lib/features/task/domain/`、`lib/features/task/data/` |
-| Calendar | 月移動、今日への復帰、連続日をつないだ淡い紫の学習日表示、日付選択、選択日のタスク進捗表示を実装済み | `MockCalendarRepository` | `GET /v1/calendar` | `lib/features/calendar/presentation/`、`lib/features/calendar/domain/`、`lib/features/calendar/data/` |
+| Calendar | 月移動、今日への復帰、連続日をつないだ淡い紫の学習日表示、選択日のタスク設定内容・問題数・進捗表示を実装済み | `MockCalendarRepository` | `GET /v1/calendar` | `lib/features/calendar/presentation/`、`lib/features/calendar/domain/`、`lib/features/calendar/data/` |
 | Friend | モーダルでの公開用ユーザーID完全一致検索、関係別絞り込み、連続学習日数、申請送信・取消、承認・拒否、メニューからのフレンド解除を実装済み | `MockFriendRepository` | `GET /v1/users/by-code/{user_code}`、`GET /v1/friends`、`/v1/friend-requests`、`DELETE /v1/friends/{user_id}` の暫定契約 | `lib/features/friend/presentation/`、`lib/features/friend/domain/`、`lib/features/friend/data/` |
 
 ## RepositoryとAPIの差し替え方
@@ -75,7 +75,7 @@ API版へ接続するときは、対象featureの `data/` にAPI Client / Data S
 - モック: `MockCalendarRepository`
 - DTO: `CalendarResponseDto` / `CalendarDayActivityDto`
 - 接続先: `GET /v1/calendar?from=...&to=...`
-- APIの `days` を月表示へ変換し、`completed_slots > 0` の日を学習日として淡い紫で表示します。全完了か途中かは、日付選択後の進捗表示で確認します。
+- APIの `days` を月表示へ変換し、`completed_slots > 0` の日を学習日として淡い紫で表示します。選択後は `tasks` からタスク名、設定内容、問題数、進捗を表示します。
 - `streak_days` と `last_studied_on` はドメインモデルへ保持しますが、現在のカレンダー画面には表示しません。
 - 読み込み失敗時の再試行導線は実装済みです。API通信によるエラー変換は未実装です。
 
