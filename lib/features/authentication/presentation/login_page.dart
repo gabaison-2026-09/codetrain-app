@@ -10,10 +10,12 @@ class LoginPage extends StatefulWidget {
     super.key,
     required this.repository,
     required this.onSignedIn,
+    required this.onAccountCreated,
   });
 
   final AuthRepository repository;
   final ValueChanged<AuthSession> onSignedIn;
+  final ValueChanged<AuthSession> onAccountCreated;
 
   @override
   State<LoginPage> createState() => _LoginPageState();
@@ -64,7 +66,7 @@ class _LoginPageState extends State<LoginPage> {
           repository: widget.repository,
           onCreated: (session) {
             Navigator.of(context).pop();
-            widget.onSignedIn(session);
+            widget.onAccountCreated(session);
           },
         ),
       ),

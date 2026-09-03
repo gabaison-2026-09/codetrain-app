@@ -19,6 +19,9 @@ import 'package:codetrain_app/features/home/data/mock_top_navigation_repository.
 import 'package:codetrain_app/features/home/presentation/home_page.dart';
 import 'package:codetrain_app/features/learn/data/learn_response_dto.dart';
 import 'package:codetrain_app/features/learn/data/mock_learn_repository.dart';
+import 'package:codetrain_app/features/onboarding/data/task_recommendation_dto.dart';
+import 'package:codetrain_app/features/onboarding/domain/task_recommendation.dart';
+import 'package:codetrain_app/features/onboarding/presentation/task_recommendation_page.dart';
 import 'package:codetrain_app/features/task/data/mock_task_repository.dart';
 import 'package:codetrain_app/features/task/data/mock_task_launcher.dart';
 import 'package:codetrain_app/features/task/data/task_slots_response_dto.dart';
@@ -26,6 +29,24 @@ import 'package:codetrain_app/shared/widgets/code_train_bottom_navigation.dart';
 import 'package:codetrain_app/shared/widgets/code_train_top_navigation.dart';
 
 void main() {
+  test('task recommendation answers map to API IDs', () {
+    final dto = TaskRecommendationRequestDto.fromDomain(
+      const TaskRecommendationAnswers(
+        goal: CreationGoal.mobileApp,
+        language: LearningLanguage.typescript,
+        purpose: LearningPurpose.personalProject,
+        experience: ProgrammingExperience.none,
+      ),
+    );
+
+    expect(dto.toJson(), {
+      'goal': 'mobile_app',
+      'language': 'typescript',
+      'purpose': 'personal_project',
+      'experience': 'none',
+    });
+  });
+
   testWidgets('login is shown on launch and Google sign-in opens home', (
     WidgetTester tester,
   ) async {
@@ -120,10 +141,15 @@ void main() {
     );
   });
 
-  testWidgets('account creation validates input and opens home', (
+  testWidgets('account creation recommends and saves a learning task', (
     WidgetTester tester,
   ) async {
-    await tester.pumpWidget(const CodeTrainApp());
+    tester.view.physicalSize = const Size(800, 1400);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final taskRepository = MockTaskRepository(hasInitialTasks: false);
+    await tester.pumpWidget(CodeTrainApp(taskRepository: taskRepository));
     await tester.tap(
       find.byKey(const ValueKey('login-create-account-button')),
     );
@@ -163,6 +189,53 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(CreateAccountPage), findsNothing);
+    expect(find.byType(TaskRecommendationPage), findsOneWidget);
+    expect(find.text('何を作りたい？'), findsOneWidget);
+    expect(find.byType(CodeTrainTopNavigation), findsNothing);
+
+    await tester.tap(
+      find.byKey(const ValueKey('recommendation-goal-mobile_app')),
+    );
+    await tester.tap(
+      find.byKey(const ValueKey('recommendation-continue-button')),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(
+      find.byKey(const ValueKey('recommendation-language-typescript')),
+    );
+    await tester.tap(
+      find.byKey(const ValueKey('recommendation-continue-button')),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(
+      find.byKey(const ValueKey('recommendation-purpose-personal_project')),
+    );
+    await tester.tap(
+      find.byKey(const ValueKey('recommendation-continue-button')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byType(Slider), findsOneWidget);
+    expect(find.text('未経験'), findsWidgets);
+    await tester.tap(
+      find.byKey(const ValueKey('recommendation-continue-button')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('このタスクから始めよう'), findsOneWidget);
+    expect(find.text('TypeScript スマホアプリ'), findsOneWidget);
+
+    await tester.tap(
+      find.byKey(const ValueKey('recommendation-start-button')),
+    );
+    await tester.pumpAndSettle();
+
+    final catalog = await taskRepository.fetchCatalog();
+    expect(catalog.tasks, hasLength(1));
+    expect(catalog.tasks.single.name, 'TypeScript スマホアプリ');
+    expect(catalog.tasks.single.isHomeTask, isTrue);
     expect(find.byType(CodeTrainTopNavigation), findsOneWidget);
     expect(find.byType(CodeTrainBottomNavigation), findsOneWidget);
   });

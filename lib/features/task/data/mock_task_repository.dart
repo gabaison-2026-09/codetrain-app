@@ -3,8 +3,10 @@ import '../domain/task_repository.dart';
 import 'task_slots_response_dto.dart';
 
 class MockTaskRepository implements TaskRepository {
-  MockTaskRepository()
-      : _tasks = _taskResponse
+  MockTaskRepository({bool hasInitialTasks = true})
+      : _tasks = (hasInitialTasks
+              ? _taskResponse
+              : const <Map<String, Object?>>[])
             .map(LearningTaskDto.fromJson)
             .map((task) => task.toDomain())
             .toList(),
@@ -74,6 +76,16 @@ class MockTaskRepository implements TaskRepository {
     {'question_type': 'code_reading', 'language': 'ruby', 'difficulty': 3},
     {'question_type': 'code_reading', 'language': 'ruby', 'difficulty': 4},
     {'question_type': 'code_reading', 'language': 'ruby', 'difficulty': 5},
+    {'question_type': 'code_reading', 'language': 'javascript', 'difficulty': 1},
+    {'question_type': 'code_reading', 'language': 'javascript', 'difficulty': 2},
+    {'question_type': 'code_reading', 'language': 'javascript', 'difficulty': 3},
+    {'question_type': 'code_reading', 'language': 'javascript', 'difficulty': 4},
+    {'question_type': 'code_reading', 'language': 'javascript', 'difficulty': 5},
+    {'question_type': 'code_reading', 'language': 'csharp', 'difficulty': 1},
+    {'question_type': 'code_reading', 'language': 'csharp', 'difficulty': 2},
+    {'question_type': 'code_reading', 'language': 'csharp', 'difficulty': 3},
+    {'question_type': 'code_reading', 'language': 'csharp', 'difficulty': 4},
+    {'question_type': 'code_reading', 'language': 'csharp', 'difficulty': 5},
     {'question_type': 'output_prediction', 'language': '', 'difficulty': 1},
     {'question_type': 'output_prediction', 'language': '', 'difficulty': 2},
     {'question_type': 'output_prediction', 'language': '', 'difficulty': 3},

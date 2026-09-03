@@ -14,6 +14,9 @@ import '../features/home/domain/top_navigation_repository.dart';
 import '../features/home/presentation/home_page.dart';
 import '../features/learn/data/mock_learn_repository.dart';
 import '../features/learn/domain/learn_repository.dart';
+import '../features/onboarding/data/mock_task_recommendation_repository.dart';
+import '../features/onboarding/domain/task_recommendation.dart';
+import '../features/onboarding/presentation/task_recommendation_page.dart';
 import '../features/task/data/mock_task_repository.dart';
 import '../features/task/data/mock_task_launcher.dart';
 import '../features/task/domain/task_launcher.dart';
@@ -30,6 +33,7 @@ class CodeTrainApp extends StatefulWidget {
     this.taskLauncher,
     this.learnRepository,
     this.taskRepository,
+    this.taskRecommendationRepository,
     this.calendarRepository,
   });
 
@@ -41,6 +45,7 @@ class CodeTrainApp extends StatefulWidget {
   final TaskLauncher? taskLauncher;
   final LearnRepository? learnRepository;
   final TaskRepository? taskRepository;
+  final TaskRecommendationRepository? taskRecommendationRepository;
   final CalendarRepository? calendarRepository;
 
   @override
@@ -49,13 +54,21 @@ class CodeTrainApp extends StatefulWidget {
 
 class _CodeTrainAppState extends State<CodeTrainApp> {
   late final AuthRepository _authRepository;
-  late bool _isAuthenticated;
+  late TaskRepository _taskRepository;
+  late final TaskRecommendationRepository _taskRecommendationRepository;
+  late _AppDestination _destination;
 
   @override
   void initState() {
     super.initState();
     _authRepository = widget.authRepository ?? const MockAuthRepository();
-    _isAuthenticated = widget.initiallyAuthenticated;
+    _taskRepository = widget.taskRepository ?? MockTaskRepository();
+    _taskRecommendationRepository =
+        widget.taskRecommendationRepository ??
+        const MockTaskRecommendationRepository();
+    _destination = widget.initiallyAuthenticated
+        ? _AppDestination.home
+        : _AppDestination.authentication;
   }
 
   @override
@@ -73,8 +86,6 @@ class _CodeTrainAppState extends State<CodeTrainApp> {
         widget.taskLauncher ?? const MockTaskLauncher();
     final resolvedLearnRepository =
         widget.learnRepository ?? const MockLearnRepository();
-    final resolvedTaskRepository =
-        widget.taskRepository ?? MockTaskRepository();
     final resolvedCalendarRepository =
         widget.calendarRepository ?? const MockCalendarRepository();
 
@@ -86,14 +97,14 @@ class _CodeTrainAppState extends State<CodeTrainApp> {
         fontFamily: 'Roboto',
         useMaterial3: true,
       ),
-      home: _isAuthenticated
-          ? HomePage(
+      home: switch (_destination) {
+        _AppDestination.home => HomePage(
               topNavigationRepository: resolvedTopNavigationRepository,
               homeRepository: resolvedHomeRepository,
               friendRepository: resolvedFriendRepository,
               taskLauncher: resolvedTaskLauncher,
               learnRepository: resolvedLearnRepository,
-              taskRepository: resolvedTaskRepository,
+              taskRepository: _taskRepository,
               calendarRepository: resolvedCalendarRepository,
               initialTopNavigationStatus: usesMockTopNavigation
                   ? MockTopNavigationRepository.mockStatus
@@ -104,11 +115,29 @@ class _CodeTrainAppState extends State<CodeTrainApp> {
               initialLearnCatalog: usesMockLearn
                   ? MockLearnRepository.mockCatalog
                   : null,
-            )
-          : LoginPage(
-              repository: _authRepository,
-              onSignedIn: (_) => setState(() => _isAuthenticated = true),
             ),
+        _AppDestination.onboarding => TaskRecommendationPage(
+              recommendationRepository: _taskRecommendationRepository,
+              taskRepository: _taskRepository,
+              onCompleted: () =>
+                  setState(() => _destination = _AppDestination.home),
+            ),
+        _AppDestination.authentication => LoginPage(
+              repository: _authRepository,
+              onSignedIn: (_) =>
+                  setState(() => _destination = _AppDestination.home),
+              onAccountCreated: _handleAccountCreated,
+            ),
+      },
     );
   }
+
+  void _handleAccountCreated(AuthSession _) {
+    if (widget.taskRepository == null) {
+      _taskRepository = MockTaskRepository(hasInitialTasks: false);
+    }
+    setState(() => _destination = _AppDestination.onboarding);
+  }
 }
+
+enum _AppDestination { authentication, onboarding, home }
