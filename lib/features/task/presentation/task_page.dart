@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../domain/task_configuration.dart';
 import '../domain/task_launcher.dart';
 import '../domain/task_repository.dart';
+import '../../../shared/widgets/programming_language_selector.dart';
 
 class TaskPage extends StatefulWidget {
   const TaskPage({
@@ -594,7 +595,7 @@ class _EditorSlotRow extends StatelessWidget {
             Expanded(
               child: Text(
                 slot.isConfigured
-                    ? '${slot.questionType!.label}  ·  ${_languageLabel(slot.language)}  ·  ${slot.difficulty == null ? 'おすすめ' : 'Lv.${slot.difficulty}'}'
+                    ? '${slot.questionType!.label}  ·  ${_languageLabel(slot.language)}  ·  ${_difficultyLabel(slot)}'
                     : '未設定',
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
@@ -629,7 +630,8 @@ class _SlotEditorSheet extends StatefulWidget {
 class _SlotEditorSheetState extends State<_SlotEditorSheet> {
   late TaskQuestionType _questionType;
   late String _language;
-  int? _difficulty;
+  int? _minimumDifficulty;
+  int? _maximumDifficulty;
 
   @override
   void initState() {
@@ -641,7 +643,8 @@ class _SlotEditorSheetState extends State<_SlotEditorSheet> {
         : widget.options
             .firstWhere((option) => option.questionType == _questionType)
             .language;
-    _difficulty = widget.initialSlot.difficulty;
+    _minimumDifficulty = widget.initialSlot.minimumDifficulty;
+    _maximumDifficulty = widget.initialSlot.maximumDifficulty;
   }
 
   List<String> get _languages => widget.options
@@ -649,17 +652,6 @@ class _SlotEditorSheetState extends State<_SlotEditorSheet> {
       .map((option) => option.language)
       .toSet()
       .toList();
-
-  List<int> get _difficulties => widget.options
-      .where(
-        (option) =>
-            option.questionType == _questionType &&
-            option.language == _language,
-      )
-      .map((option) => option.difficulty)
-      .toSet()
-      .toList()
-    ..sort();
 
   @override
   Widget build(BuildContext context) {
@@ -709,38 +701,42 @@ class _SlotEditorSheetState extends State<_SlotEditorSheet> {
                   _language = widget.options
                       .firstWhere((option) => option.questionType == type)
                       .language;
-                  _difficulty = null;
+                  _minimumDifficulty = null;
+                  _maximumDifficulty = null;
                 });
               },
             ),
             const SizedBox(height: 12),
-            _EditorDropdown<String>(
-              label: '言語',
-              value: _language,
-              items: _languages,
-              itemLabel: _languageLabel,
-              onChanged: (language) => setState(() {
-                _language = language;
-                _difficulty = null;
-              }),
-            ),
+            if (_languages.every((language) => language.isEmpty))
+              InputDecorator(
+                decoration: _fieldDecoration('言語'),
+                child: const Text('指定なし'),
+              )
+            else
+              ProgrammingLanguageSelector(
+                languages: _languages,
+                selectedLanguage: _language,
+                keyPrefix: 'task-language',
+                semanticsLabel: 'スロットの言語',
+                labelBuilder: _languageLabel,
+                onChanged: (language) => setState(() {
+                  _language = language;
+                  _minimumDifficulty = null;
+                  _maximumDifficulty = null;
+                }),
+              ),
             const SizedBox(height: 12),
-            DropdownButtonFormField<int?>(
-              initialValue: _difficulty,
-              isExpanded: true,
-              decoration: _fieldDecoration('難易度'),
-              items: <int?>[null, ..._difficulties]
-                  .map(
-                    (difficulty) => DropdownMenuItem<int?>(
-                      value: difficulty,
-                      child: Text(
-                        difficulty == null ? 'おすすめ' : 'Lv.$difficulty',
-                      ),
-                    ),
-                  )
-                  .toList(),
-              onChanged: (difficulty) =>
-                  setState(() => _difficulty = difficulty),
+            _TaskDifficultySelector(
+              minimumDifficulty: _minimumDifficulty,
+              maximumDifficulty: _maximumDifficulty,
+              onChanged: (values) => setState(() {
+                _minimumDifficulty = values.start.round();
+                _maximumDifficulty = values.end.round();
+              }),
+              onRecommended: () => setState(() {
+                _minimumDifficulty = null;
+                _maximumDifficulty = null;
+              }),
             ),
             const SizedBox(height: 24),
             FilledButton(
@@ -750,7 +746,8 @@ class _SlotEditorSheetState extends State<_SlotEditorSheet> {
                   slotNo: widget.initialSlot.slotNo,
                   questionType: _questionType,
                   language: _language,
-                  difficulty: _difficulty,
+                  minimumDifficulty: _minimumDifficulty,
+                  maximumDifficulty: _maximumDifficulty,
                 ),
               ),
               style: FilledButton.styleFrom(
@@ -806,6 +803,122 @@ class _EditorDropdown<T> extends StatelessWidget {
   }
 }
 
+class _TaskDifficultySelector extends StatelessWidget {
+  const _TaskDifficultySelector({
+    required this.minimumDifficulty,
+    required this.maximumDifficulty,
+    required this.onChanged,
+    required this.onRecommended,
+  });
+
+  final int? minimumDifficulty;
+  final int? maximumDifficulty;
+  final ValueChanged<RangeValues> onChanged;
+  final VoidCallback onRecommended;
+
+  @override
+  Widget build(BuildContext context) {
+    const minimumLevel = 1;
+    const maximumLevel = 5;
+    final safeMinimum = (minimumDifficulty ?? minimumLevel)
+        .clamp(minimumLevel, maximumLevel)
+        .toInt();
+    final safeMaximum = (maximumDifficulty ?? maximumLevel)
+        .clamp(safeMinimum, maximumLevel)
+        .toInt();
+    final isRecommended = minimumDifficulty == null && maximumDifficulty == null;
+    final selectedLabel = isRecommended
+        ? 'おすすめ'
+        : safeMinimum == safeMaximum
+            ? 'Lv.$safeMinimum'
+            : 'Lv.$safeMinimum 〜 Lv.$safeMaximum';
+
+    return Semantics(
+      container: true,
+      label: '難易度',
+      child: Column(
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                '難易度',
+                style: TextStyle(
+                  color: _TaskPageState.muted,
+                  fontFamily: 'Noto Sans Japanese',
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const Spacer(),
+              if (!isRecommended)
+                TextButton(
+                  onPressed: onRecommended,
+                  style: TextButton.styleFrom(
+                    foregroundColor: _TaskPageState.muted,
+                    padding: const EdgeInsets.symmetric(horizontal: 4),
+                    minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    textStyle: const TextStyle(
+                      fontFamily: 'Noto Sans Japanese',
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  child: const Text('おすすめ'),
+                ),
+              Text(
+                selectedLabel,
+                style: const TextStyle(
+                  color: _TaskPageState.purple,
+                  fontFamily: 'Russo One',
+                  fontSize: 12,
+                  fontWeight: FontWeight.w400,
+                ),
+              ),
+            ],
+          ),
+          SliderTheme(
+            data: SliderTheme.of(context).copyWith(
+              activeTrackColor: _TaskPageState.purple,
+              inactiveTrackColor: const Color(0xffe4e4eb),
+              thumbColor: _TaskPageState.purple,
+              overlayColor: const Color(0x1f6263d9),
+              rangeValueIndicatorShape:
+                  const PaddleRangeSliderValueIndicatorShape(),
+              valueIndicatorColor: _TaskPageState.purple,
+              valueIndicatorTextStyle: const TextStyle(
+                color: Colors.white,
+                fontFamily: 'Russo One',
+                fontSize: 11,
+              ),
+              trackHeight: 4,
+              rangeThumbShape: const RoundRangeSliderThumbShape(
+                enabledThumbRadius: 9,
+              ),
+              overlayShape: const RoundSliderOverlayShape(overlayRadius: 17),
+            ),
+            child: RangeSlider(
+              values: RangeValues(
+                safeMinimum.toDouble(),
+                safeMaximum.toDouble(),
+              ),
+              min: minimumLevel.toDouble(),
+              max: maximumLevel.toDouble(),
+              divisions: maximumLevel - minimumLevel,
+              labels: RangeLabels(
+                'Lv.$safeMinimum',
+                'Lv.$safeMaximum',
+              ),
+              onChanged: onChanged,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _SheetHandle extends StatelessWidget {
   const _SheetHandle();
 
@@ -844,4 +957,12 @@ String _languageLabel(String language) {
     'dart': 'Dart',
   };
   return labels[language] ?? language;
+}
+
+String _difficultyLabel(TaskSlot slot) {
+  final minimum = slot.minimumDifficulty;
+  final maximum = slot.maximumDifficulty;
+  if (minimum == null || maximum == null) return 'おすすめ';
+  if (minimum == maximum) return 'Lv.$minimum';
+  return 'Lv.$minimum 〜 Lv.$maximum';
 }

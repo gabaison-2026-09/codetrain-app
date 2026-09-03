@@ -4,12 +4,14 @@ class LearnQuestionFilter {
   const LearnQuestionFilter({
     required this.type,
     this.language = '',
-    this.difficulty,
+    this.minimumDifficulty,
+    this.maximumDifficulty,
   });
 
   final LearnQuestionType type;
   final String language;
-  final int? difficulty;
+  final int? minimumDifficulty;
+  final int? maximumDifficulty;
 }
 
 class LearnTaskStartRequest {
@@ -31,12 +33,14 @@ class LearnCatalog {
 class LearnSkill {
   const LearnSkill({
     required this.id,
+    required this.language,
     required this.name,
     required this.description,
     required this.nodes,
   });
 
   final String id;
+  final String language;
   final String name;
   final String description;
   final List<LearnSkillNode> nodes;

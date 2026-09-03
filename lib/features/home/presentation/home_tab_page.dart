@@ -6,9 +6,11 @@ import 'package:flutter/services.dart';
 
 import '../domain/home_dashboard.dart';
 import '../domain/home_dashboard_repository.dart';
+import '../../legal/presentation/open_source_licenses_page.dart';
 import '../../task/domain/task_configuration.dart';
 import '../../task/domain/task_launcher.dart';
 import '../../task/domain/task_repository.dart';
+import '../../../shared/widgets/programming_language_icon.dart';
 
 class HomeTabPage extends StatefulWidget {
   const HomeTabPage({
@@ -97,6 +99,13 @@ class _HomeTabPageState extends State<HomeTabPage> {
               taskConfigurations: configuredTasks,
               isVisible: widget.isVisible,
               onStartLearning: widget.onStartLearning,
+              onOpenLicenses: () {
+                Navigator.of(context).push<void>(
+                  MaterialPageRoute(
+                    builder: (_) => const OpenSourceLicensesPage(),
+                  ),
+                );
+              },
             );
           },
         );
@@ -151,6 +160,7 @@ class _HomeDashboardView extends StatefulWidget {
     this.taskConfigurations,
     this.isVisible,
     this.onStartLearning,
+    required this.onOpenLicenses,
   });
 
   final HomeDashboard dashboard;
@@ -159,6 +169,7 @@ class _HomeDashboardView extends StatefulWidget {
   final List<LearningTask>? taskConfigurations;
   final ValueListenable<bool>? isVisible;
   final ValueChanged<LearningTask?>? onStartLearning;
+  final VoidCallback onOpenLicenses;
 
   @override
   State<_HomeDashboardView> createState() => _HomeDashboardViewState();
@@ -396,6 +407,13 @@ class _HomeDashboardViewState extends State<_HomeDashboardView> {
                 alignment: Alignment.center,
                 child: _MonthlyStudyProgress(
                   progress: dashboard.monthlyProgress,
+                ),
+              ),
+              const SizedBox(height: 22),
+              Align(
+                alignment: Alignment.centerRight,
+                child: _OpenSourceLicensesLink(
+                  onPressed: widget.onOpenLicenses,
                 ),
               ),
             ],
@@ -974,124 +992,16 @@ class _ProgramIcon extends StatelessWidget {
   Widget build(BuildContext context) {
     switch (language) {
       case HomeLanguage.csharp:
-        return const _CSharpIcon();
+        return const ProgrammingLanguageIcon(language: 'csharp', size: 36);
       case HomeLanguage.typescript:
-        return const _TypeScriptIcon();
+        return const ProgrammingLanguageIcon(
+          language: 'typescript',
+          size: 36,
+        );
       case HomeLanguage.ruby:
-        return const _RubyIcon();
+        return const ProgrammingLanguageIcon(language: 'ruby', size: 36);
     }
   }
-}
-
-class _CSharpIcon extends StatelessWidget {
-  const _CSharpIcon();
-
-  @override
-  Widget build(BuildContext context) {
-    return const SizedBox(
-      width: 36,
-      height: 36,
-      child: CustomPaint(painter: _CSharpIconPainter()),
-    );
-  }
-}
-
-class _CSharpIconPainter extends CustomPainter {
-  const _CSharpIconPainter();
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final path = Path()
-      ..moveTo(size.width / 2, 0)
-      ..lineTo(size.width - 2.4, 8.4)
-      ..lineTo(size.width - 2.4, 27.6)
-      ..lineTo(size.width / 2, size.height)
-      ..lineTo(2.4, 27.6)
-      ..lineTo(2.4, 8.4)
-      ..close();
-    canvas.drawPath(path, Paint()..color = const Color(0xff0566a8));
-    final painter = TextPainter(
-      text: const TextSpan(
-        text: 'C#',
-        style: TextStyle(
-          color: Colors.white,
-          fontSize: 17,
-          fontWeight: FontWeight.w700,
-        ),
-      ),
-      textDirection: TextDirection.ltr,
-    )..layout();
-    painter.paint(canvas, Offset((size.width - painter.width) / 2, 8.5));
-  }
-
-  @override
-  bool shouldRepaint(covariant _CSharpIconPainter oldDelegate) => false;
-}
-
-class _TypeScriptIcon extends StatelessWidget {
-  const _TypeScriptIcon();
-
-  @override
-  Widget build(BuildContext context) {
-    return const SizedBox(
-      width: 36,
-      height: 36,
-      child: DecoratedBox(
-        decoration: BoxDecoration(color: Color(0xff367bbb)),
-        child: Center(
-          child: Text(
-            'TS',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 18,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _RubyIcon extends StatelessWidget {
-  const _RubyIcon();
-
-  @override
-  Widget build(BuildContext context) {
-    return const SizedBox(
-      width: 36,
-      height: 36,
-      child: CustomPaint(painter: _RubyIconPainter()),
-    );
-  }
-}
-
-class _RubyIconPainter extends CustomPainter {
-  const _RubyIconPainter();
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    canvas.scale(size.width / 30, size.height / 30);
-    final paint = Paint()..color = const Color(0xffd52d36);
-    final left = Path()
-      ..moveTo(2, 8)
-      ..lineTo(11, 2)
-      ..lineTo(17, 10)
-      ..lineTo(9, 28)
-      ..close();
-    final right = Path()
-      ..moveTo(17, 10)
-      ..lineTo(28, 5)
-      ..lineTo(26, 22)
-      ..lineTo(9, 28)
-      ..close();
-    canvas.drawPath(left, paint);
-    canvas.drawPath(right, paint);
-    canvas.drawCircle(const Offset(18, 10), 3, Paint()..color = Colors.white);
-  }
-
-  @override
-  bool shouldRepaint(covariant _RubyIconPainter oldDelegate) => false;
 }
 
 class _AddProgramButton extends StatelessWidget {
@@ -1103,6 +1013,32 @@ class _AddProgramButton extends StatelessWidget {
       width: 36,
       height: 36,
       child: CustomPaint(painter: _AddProgramButtonPainter()),
+    );
+  }
+}
+
+class _OpenSourceLicensesLink extends StatelessWidget {
+  const _OpenSourceLicensesLink({required this.onPressed});
+
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return TextButton.icon(
+      key: const ValueKey('home-open-source-licenses-link'),
+      onPressed: onPressed,
+      label: const Text('オープンソースライセンス'),
+      style: TextButton.styleFrom(
+        foregroundColor: const Color(0xff9b9ba4),
+        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+        minimumSize: Size.zero,
+        tapTargetSize: MaterialTapTargetSize.padded,
+        textStyle: const TextStyle(
+          fontFamily: 'Noto Sans Japanese',
+          fontSize: 11,
+          fontWeight: FontWeight.w500,
+        ),
+      ),
     );
   }
 }
@@ -1120,7 +1056,7 @@ class _AddProgramButtonPainter extends CustomPainter {
     const center = Offset(15, 15);
     const radius = 12.0;
     for (var index = 0; index < 16; index++) {
-      final start = (index * 3.14159265359 / 8) + 0.05;
+      final start = (index * 3.14159265359 / 8 + 0.05).toDouble();
       canvas.drawArc(
         Rect.fromCircle(center: center, radius: radius),
         start,

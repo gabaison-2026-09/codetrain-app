@@ -24,6 +24,7 @@ class LearnSkillsResponseDto {
 class LearnSkillDto {
   const LearnSkillDto({
     required this.id,
+    required this.language,
     required this.name,
     required this.description,
     required this.nodes,
@@ -31,9 +32,11 @@ class LearnSkillDto {
 
   factory LearnSkillDto.fromJson(Map<String, Object?> json) {
     final nodes = json['nodes'] as List<Object?>? ?? const [];
+    final name = json['name']! as String;
     return LearnSkillDto(
       id: json['id']! as String,
-      name: json['name']! as String,
+      language: json['language'] as String? ?? _languageFromSkillName(name),
+      name: name,
       description: json['description'] as String? ?? '',
       nodes: nodes
           .map(
@@ -44,17 +47,22 @@ class LearnSkillDto {
   }
 
   final String id;
+  final String language;
   final String name;
   final String description;
   final List<LearnSkillNodeDto> nodes;
 
   LearnSkill toDomain() => LearnSkill(
     id: id,
+    language: language,
     name: name,
     description: description,
     nodes: nodes.map((node) => node.toDomain()).toList(growable: false),
   );
 }
+
+String _languageFromSkillName(String name) =>
+    name.trim().split(RegExp(r'\s+')).first;
 
 class LearnSkillNodeDto {
   const LearnSkillNodeDto({

@@ -30,6 +30,7 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  flutter_svg: ^2.3.0
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
@@ -67,6 +68,9 @@ flutter:
     - family: Noto Sans Japanese
       fonts:
         - asset: assets/fonts/NotoSansJapanese-Regular.ttf
+
+  assets:
+    - assets/icons/programming_languages/
 
   # To add assets to your application, add an assets section, like this:
   # assets:

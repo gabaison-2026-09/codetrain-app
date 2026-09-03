@@ -79,6 +79,8 @@
 
 > **クライアント要件によるAPI不足（2026-09-03）**: 1タスクが5スロットを持ち、そのタスクを複数保存する。現行の `/v1/task-slots` はユーザー単位の5スロットしか表現できないため、API接続前にタスクを識別する `task_id` と表示用の `name`、ホーム開始対象を示す `is_home_task`、タスク単位の一覧・作成・更新・削除APIが必要。ホーム開始対象は最大3件とする。想定レスポンスは `{"tasks":[{"id":"uuid","name":"TypeScript 基礎","is_home_task":true,"slots":[...5件]}]}`。`/v1/task-slots/options` は各スロットの選択肢取得に継続利用する。
 
+> **クライアント要件変更（2026-09-04）**: タスクスロットの難易度は単一値ではなく、`minimum_difficulty` と `maximum_difficulty` の範囲で指定する。両方 `null` の場合はサーバが推奨レベルを解決する。API接続時にDB・バリデーション・タスク単位APIへ反映する必要がある。
+
 | 種別 | エンドポイント | 概略 | 認証是非 |
 | --- | --- | --- | --- |
 | GET | `/v1/task-slots` | 設定済みタスクスロット（最大5）を取得する | 必須 |
@@ -429,12 +431,12 @@
 ```json
 {
   "slots": [
-    {"slot_no": 1, "question_type": "code_reading", "language": "typescript", "difficulty": null},
-    {"slot_no": 2, "question_type": "output_prediction", "language": "", "difficulty": 3}
+    {"slot_no": 1, "question_type": "code_reading", "language": "typescript", "minimum_difficulty": null, "maximum_difficulty": null},
+    {"slot_no": 2, "question_type": "output_prediction", "language": "", "minimum_difficulty": 2, "maximum_difficulty": 3}
   ]
 }
 ```
-未設定のスロット番号は配列に含まれない。`difficulty: null` は「サーバが推奨レベルを解決する」（[DB_SCHEMA.md](DB_SCHEMA.md) §5 `user_task`）。
+未設定のスロット番号は配列に含まれない。`minimum_difficulty` と `maximum_difficulty` がともに `null` の場合は「サーバが推奨レベルを解決する」（[DB_SCHEMA.md](DB_SCHEMA.md) §5 `user_task`）。
 
 ---
 
@@ -448,11 +450,12 @@
 {
   "question_type": "code_reading",
   "language": "typescript",
-  "difficulty": null
+  "minimum_difficulty": 1,
+  "maximum_difficulty": 3
 }
 ```
 - `language` 省略時は `""`（言語を問わない）
-- `(question_type, language, difficulty)` の組み合わせは `GET /v1/task-slots/options` の候補に存在する必要がある（`difficulty: null` のときは `question_type`/`language` の組み合わせのみ検証）
+- `(question_type, language)` に対応する `GET /v1/task-slots/options` の候補範囲に、`minimum_difficulty`〜`maximum_difficulty` が含まれる必要がある（両方 `null` のときは `question_type`/`language` の組み合わせのみ検証）
 
 **レスポンスボディ** `200 OK`（設定後のスロット1件）
 
@@ -487,6 +490,7 @@
 }
 ```
 `published` な問題バンクに実在する組み合わせのみを返す（設定できるが割当不能、を防ぐ）。
+難易度はLv.1〜Lv.5を使用し、タスクで範囲指定する場合は選択した範囲内の各レベルが候補に含まれている必要がある。
 
 ---
 

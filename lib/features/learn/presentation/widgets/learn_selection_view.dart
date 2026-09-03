@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../domain/learn_content.dart';
+import '../../../../shared/widgets/programming_language_selector.dart';
 
 class LearnSelectionView extends StatefulWidget {
   const LearnSelectionView({
@@ -28,14 +29,21 @@ class LearnSelectionView extends StatefulWidget {
 
 class _LearnSelectionViewState extends State<LearnSelectionView> {
   final _searchController = TextEditingController();
-  late String _selectedSkillId;
-  String _selectedDifficulty = '';
+  late String _selectedLanguageKey;
+  var _minimumDifficulty = 1;
+  var _maximumDifficulty = 5;
 
   @override
   void initState() {
     super.initState();
-    _selectedSkillId =
-        widget.catalog.skills.isEmpty ? '' : widget.catalog.skills.first.id;
+    final selectedSkill = _skillForNode(widget.selectedNodeId);
+    _selectedLanguageKey = selectedSkill == null
+        ? ''
+        : _LearnLanguageOption.fromSkill(selectedSkill).key;
+    if (_selectedLanguageKey.isEmpty && widget.catalog.skills.isNotEmpty) {
+      _selectedLanguageKey =
+          _LearnLanguageOption.fromSkill(widget.catalog.skills.first).key;
+    }
   }
 
   @override
@@ -45,10 +53,31 @@ class _LearnSelectionViewState extends State<LearnSelectionView> {
   }
 
   List<_LearnNodeEntry> get _allEntries => [
-        for (final skill in widget.catalog.skills)
-          for (final node in skill.nodes)
-            _LearnNodeEntry(skill: skill, node: node),
-      ];
+    for (final skill in widget.catalog.skills)
+      for (final node in skill.nodes)
+        _LearnNodeEntry(skill: skill, node: node),
+  ];
+
+  List<_LearnLanguageOption> get _languageOptions {
+    final options = <String, _LearnLanguageOption>{};
+    for (final skill in widget.catalog.skills) {
+      final option = _LearnLanguageOption.fromSkill(skill);
+      options.update(
+        option.key,
+        (current) => current.addSkill(skill),
+        ifAbsent: () => option,
+      );
+    }
+    return options.values.toList(growable: false);
+  }
+
+  LearnSkill? _skillForNode(String? nodeId) {
+    if (nodeId == null) return null;
+    for (final skill in widget.catalog.skills) {
+      if (skill.nodes.any((node) => node.id == nodeId)) return skill;
+    }
+    return null;
+  }
 
   List<_LearnNodeEntry> get _filteredEntries {
     final query = _searchController.text.trim().toLowerCase();
@@ -56,11 +85,12 @@ class _LearnSelectionViewState extends State<LearnSelectionView> {
       final matchesQuery = query.isEmpty ||
           entry.node.name.toLowerCase().contains(query) ||
           entry.skill.name.toLowerCase().contains(query);
-      final matchesSkill =
-          _selectedSkillId.isEmpty || entry.skill.id == _selectedSkillId;
-      final matchesDifficulty = _selectedDifficulty.isEmpty ||
-          entry.node.difficulty.toString() == _selectedDifficulty;
-      return matchesQuery && matchesSkill && matchesDifficulty;
+      final matchesLanguage = _selectedLanguageKey.isEmpty ||
+          _LearnLanguageOption.fromSkill(entry.skill).key ==
+              _selectedLanguageKey;
+      final matchesDifficulty = entry.node.difficulty >= _minimumDifficulty &&
+          entry.node.difficulty <= _maximumDifficulty;
+      return matchesQuery && matchesLanguage && matchesDifficulty;
     }).toList(growable: false);
   }
 
@@ -68,12 +98,21 @@ class _LearnSelectionViewState extends State<LearnSelectionView> {
     setState(() {});
   }
 
-  void _handleSkillChanged(String? skillId) {
-    setState(() => _selectedSkillId = skillId ?? '');
+  void _handleLanguageChanged(_LearnLanguageOption option) {
+    final firstNode = option.skills
+        .expand((skill) => skill.nodes)
+        .firstOrNull;
+    setState(() => _selectedLanguageKey = option.key);
+    if (firstNode != null && firstNode.id != widget.selectedNodeId) {
+      widget.onNodeSelected(firstNode.id);
+    }
   }
 
-  void _handleDifficultyChanged(String? difficulty) {
-    setState(() => _selectedDifficulty = difficulty ?? '');
+  void _handleDifficultyChanged(RangeValues values) {
+    setState(() {
+      _minimumDifficulty = values.start.round();
+      _maximumDifficulty = values.end.round();
+    });
   }
 
   @override
@@ -131,18 +170,21 @@ class _LearnSelectionViewState extends State<LearnSelectionView> {
                             ),
                           ),
                     filled: true,
-                    fillColor: const Color(0xfffafafd),
-                    contentPadding: const EdgeInsets.symmetric(vertical: 15),
+                    fillColor: const Color(0xfff5f5f7),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 15,
+                    ),
                     border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(2),
-                      borderSide: const BorderSide(color: Color(0xffd9d9df)),
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none,
                     ),
                     enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(2),
-                      borderSide: const BorderSide(color: Color(0xffd9d9df)),
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none,
                     ),
                     focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(2),
+                      borderRadius: BorderRadius.circular(12),
                       borderSide: const BorderSide(
                         color: Color(0xff6263d9),
                         width: 1.5,
@@ -151,48 +193,30 @@ class _LearnSelectionViewState extends State<LearnSelectionView> {
                   ),
                 ),
                 const SizedBox(height: 10),
-                Row(
-                  children: [
-                    Expanded(
-                      child: _SelectionDropdown(
-                        key: const ValueKey('learn-skill-filter'),
-                        value: _selectedSkillId,
-                        items: [
-                          const DropdownMenuItem(
-                            value: '',
-                            child: Text('すべてのスキル'),
-                          ),
-                          for (final skill in widget.catalog.skills)
-                            DropdownMenuItem(
-                              value: skill.id,
-                              child: Text(skill.name),
-                            ),
-                        ],
-                        onChanged: _handleSkillChanged,
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: _SelectionDropdown(
-                        key: const ValueKey('learn-difficulty-filter'),
-                        value: _selectedDifficulty,
-                        items: const [
-                          DropdownMenuItem(
-                            value: '',
-                            child: Text('すべての難易度'),
-                          ),
-                          DropdownMenuItem(value: '1', child: Text('Lv.1')),
-                          DropdownMenuItem(value: '2', child: Text('Lv.2')),
-                          DropdownMenuItem(value: '3', child: Text('Lv.3')),
-                          DropdownMenuItem(value: '4', child: Text('Lv.4')),
-                          DropdownMenuItem(value: '5', child: Text('Lv.5')),
-                        ],
-                        onChanged: _handleDifficultyChanged,
-                      ),
-                    ),
+                ProgrammingLanguageSelector(
+                  languages: [
+                    for (final option in _languageOptions) option.name,
                   ],
+                  selectedLanguage: _selectedLanguageKey,
+                  keyPrefix: 'learn-language',
+                  semanticsLabel: '学習言語',
+                  onChanged: (language) {
+                    final option = _languageOptions.firstWhere(
+                      (option) => option.key == language.toLowerCase(),
+                    );
+                    _handleLanguageChanged(option);
+                  },
                 ),
-                const SizedBox(height: 22),
+                const SizedBox(height: 18),
+                _DifficultySelector(
+                  key: const ValueKey('learn-difficulty-filter'),
+                  minimum: _minimumDifficulty,
+                  maximum: _maximumDifficulty,
+                  onChanged: _handleDifficultyChanged,
+                ),
+                const SizedBox(height: 12),
+                const Divider(height: 1, color: Color(0xffe3e3e9)),
+                const SizedBox(height: 2),
                 if (filteredEntries.isEmpty)
                   const _EmptySelectionView()
                 else
@@ -226,6 +250,8 @@ class _LearnSelectionViewState extends State<LearnSelectionView> {
                     style: FilledButton.styleFrom(
                       backgroundColor: const Color(0xff6263d9),
                       foregroundColor: Colors.white,
+                      disabledBackgroundColor: const Color(0xffe3e3e9),
+                      disabledForegroundColor: const Color(0xff91919b),
                       minimumSize: const Size.fromHeight(52),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(14),
@@ -283,52 +309,113 @@ class _SelectionTitle extends StatelessWidget {
   }
 }
 
-class _SelectionDropdown extends StatelessWidget {
-  const _SelectionDropdown({
+class _LearnLanguageOption {
+  const _LearnLanguageOption({
+    required this.key,
+    required this.name,
+    required this.skills,
+  });
+
+  factory _LearnLanguageOption.fromSkill(LearnSkill skill) {
+    final name = skill.language;
+    final key = name.toLowerCase();
+    return _LearnLanguageOption(
+      key: key,
+      name: name,
+      skills: [skill],
+    );
+  }
+
+  final String key;
+  final String name;
+  final List<LearnSkill> skills;
+
+  _LearnLanguageOption addSkill(LearnSkill skill) {
+    return _LearnLanguageOption(
+      key: key,
+      name: name,
+      skills: [...skills, skill],
+    );
+  }
+}
+
+class _DifficultySelector extends StatelessWidget {
+  const _DifficultySelector({
     super.key,
-    required this.value,
-    required this.items,
+    required this.minimum,
+    required this.maximum,
     required this.onChanged,
   });
 
-  final String value;
-  final List<DropdownMenuItem<String>> items;
-  final ValueChanged<String?> onChanged;
+  final int minimum;
+  final int maximum;
+  final ValueChanged<RangeValues> onChanged;
 
   @override
   Widget build(BuildContext context) {
-    return DropdownButtonFormField<String>(
-      initialValue: value,
-      isExpanded: true,
-      icon: const Icon(Icons.unfold_more_rounded, size: 19),
-      style: const TextStyle(
-        color: Color(0xff3f3f47),
-        fontFamily: 'Noto Sans Japanese',
-        fontSize: 12,
-        fontWeight: FontWeight.w600,
-      ),
-      decoration: InputDecoration(
-        filled: true,
-        fillColor: const Color(0xfffafafd),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 12),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(2),
-          borderSide: const BorderSide(color: Color(0xffd9d9df)),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(2),
-          borderSide: const BorderSide(color: Color(0xffd9d9df)),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(2),
-          borderSide: const BorderSide(
-            color: Color(0xff6263d9),
-            width: 1.5,
+    final isAllSelected = minimum == 1 && maximum == 5;
+    return Semantics(
+      container: true,
+      label: '難易度の範囲',
+      child: Column(
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                '難易度',
+                style: TextStyle(
+                  color: Color(0xff55555e),
+                  fontFamily: 'Noto Sans Japanese',
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              Text(
+                isAllSelected ? 'すべて' : 'Lv.$minimum 〜 Lv.$maximum',
+                style: const TextStyle(
+                  color: Color(0xff6263d9),
+                  fontFamily: 'Russo One',
+                  fontSize: 12,
+                  fontWeight: FontWeight.w400,
+                ),
+              ),
+            ],
           ),
-        ),
+          SliderTheme(
+            data: SliderTheme.of(context).copyWith(
+              activeTrackColor: const Color(0xff6263d9),
+              inactiveTrackColor: const Color(0xffe4e4eb),
+              thumbColor: const Color(0xff6263d9),
+              overlayColor: const Color(0x1f6263d9),
+              rangeValueIndicatorShape:
+                  const PaddleRangeSliderValueIndicatorShape(),
+              valueIndicatorColor: const Color(0xff6263d9),
+              valueIndicatorTextStyle: const TextStyle(
+                color: Colors.white,
+                fontFamily: 'Russo One',
+                fontSize: 11,
+              ),
+              trackHeight: 4,
+              rangeThumbShape: const RoundRangeSliderThumbShape(
+                enabledThumbRadius: 9,
+              ),
+              overlayShape: const RoundSliderOverlayShape(overlayRadius: 17),
+            ),
+            child: RangeSlider(
+              values: RangeValues(
+                minimum.toDouble(),
+                maximum.toDouble(),
+              ),
+              min: 1,
+              max: 5,
+              divisions: 4,
+              labels: RangeLabels('Lv.$minimum', 'Lv.$maximum'),
+              onChanged: onChanged,
+            ),
+          ),
+        ],
       ),
-      items: items,
-      onChanged: onChanged,
     );
   }
 }
@@ -395,7 +482,7 @@ class _NodeButton extends StatelessWidget {
           ),
           child: Row(
             children: [
-              const SizedBox(width: 12),
+              const SizedBox(width: 14),
               Expanded(
                 child: Text(
                   node.name,
@@ -404,11 +491,11 @@ class _NodeButton extends StatelessWidget {
                         ? const Color(0xff6263d9)
                         : const Color(0xff3f3f47),
                     fontFamily: 'Noto Sans Japanese',
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                  ),
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
+              ),
               Text(
                 'Lv.${node.difficulty}',
                 style: TextStyle(
@@ -419,7 +506,7 @@ class _NodeButton extends StatelessWidget {
                   fontSize: 10,
                 ),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 14),
             ],
           ),
         ),
