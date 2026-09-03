@@ -1,6 +1,6 @@
 # 現在の機能実装・API接続一覧
 
-更新日: 2026-09-03
+更新日: 2026-09-04
 
 この文書は、現在の `codetrain-app` に実装されている画面・機能と、APIへ接続する際の差し替え箇所を一覧化したものです。APIの入出力仕様そのものは [`docs/API_DESIGN.md`](../API_DESIGN.md) を正とします。
 
@@ -8,10 +8,19 @@
 
 - アプリの起動と画面表示は実装済みです。
 - 起動時のログイン画面、専用のアカウント新規作成画面、メール／パスワードとGoogleのモック認証、認証後のホーム表示を実装済みです。認証情報の保存と外部送信は行いません。
-- 現在の画面データ取得・保存はすべてモックRepositoryを使用しています。FlutterアプリからAPIへ通信する具体的なAPI Client / Data Source / API版Repositoryはまだありません。
+- 現在の画面データ取得・保存はすべてモックRepositoryを使用しています。各featureのAPI版Repository / Data Sourceはまだありませんが、それらが乗る共通の通信基盤（環境設定・共通APIクライアント）は実装済みです（後述）。
 - `CodeTrainApp` がComposition RootとしてRepositoryを解決し、`HomePage` 以下へ注入します。API版を実装した場合も、原則として `lib/app/app.dart` の注入先を差し替えます。
 - APIレスポンスをアプリ内モデルへ変換するDTOは、トップナビゲーション、カレンダー、学習、タスク、フレンドの一部に実装済みです。
-- `pubspec.yaml` には現在、HTTP通信ライブラリや認証ライブラリは追加されていません。
+- `pubspec.yaml` に `http` を追加済みです。認証ライブラリ（Cognito / Firebase Authentication）は方式未決定のため未追加です。
+
+## 共通通信基盤
+
+- 環境設定: `lib/core/env/app_config.dart` / `app_environment.dart`。起動時の `--dart-define`（`API_BASE_URL` / `AUTH_MODE` / `DEV_USER`）から接続先と認証方式を解決します。既定は `local`（フォールバックURL・`X-Dev-User`）、`AUTH_MODE=prod` で `prod`（`Authorization: Bearer`）。切り替え手順は [`README.md`](../../README.md) を参照してください。
+- 共通APIクライアント: `lib/core/network/api_client.dart`。ベースURL・`/v1` 前置・共通ヘッダー・認証ヘッダー付与・タイムアウト・カーソルページング（`cursor` / `limit` / `next_cursor`）の下地を持ちます。`http.Client` を注入でき、テストは `MockClient` を使用します。
+- 認証ヘッダー: `lib/core/network/auth_header_provider.dart`。dev は `DevUserAuthHeaderProvider`（`X-Dev-User`）、prod は `BearerTokenAuthHeaderProvider`（口のみ。トークン取得は方式決定後に実装）。
+- エラー変換: `lib/core/network/api_exception.dart`。共通エラーエンベロープ `{"error":{"code","message"}}` を `ApiException` へ変換し、到達不能は `NETWORK_ERROR` とします。各featureのRepositoryはこの `ApiException` を必要に応じてドメインエラーへ変換します。
+- 疎通確認: `lib/core/network/api_health_check.dart`（`GET /healthz`）。
+- 未対応: 各エンドポイント個別の疎通処理、`ApiClient` の `lib/app/app.dart` への配線、認証方式の決定とトークン取得。
 
 ## 機能一覧
 
