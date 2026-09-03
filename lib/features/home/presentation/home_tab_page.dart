@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 
 import '../domain/home_dashboard.dart';
 import '../domain/home_dashboard_repository.dart';
+import '../../legal/presentation/open_source_licenses_page.dart';
 import '../../task/domain/task_configuration.dart';
 import '../../task/domain/task_launcher.dart';
 import '../../task/domain/task_repository.dart';
@@ -98,6 +99,13 @@ class _HomeTabPageState extends State<HomeTabPage> {
               taskConfigurations: configuredTasks,
               isVisible: widget.isVisible,
               onStartLearning: widget.onStartLearning,
+              onOpenLicenses: () {
+                Navigator.of(context).push<void>(
+                  MaterialPageRoute(
+                    builder: (_) => const OpenSourceLicensesPage(),
+                  ),
+                );
+              },
             );
           },
         );
@@ -152,6 +160,7 @@ class _HomeDashboardView extends StatefulWidget {
     this.taskConfigurations,
     this.isVisible,
     this.onStartLearning,
+    required this.onOpenLicenses,
   });
 
   final HomeDashboard dashboard;
@@ -160,6 +169,7 @@ class _HomeDashboardView extends StatefulWidget {
   final List<LearningTask>? taskConfigurations;
   final ValueListenable<bool>? isVisible;
   final ValueChanged<LearningTask?>? onStartLearning;
+  final VoidCallback onOpenLicenses;
 
   @override
   State<_HomeDashboardView> createState() => _HomeDashboardViewState();
@@ -397,6 +407,13 @@ class _HomeDashboardViewState extends State<_HomeDashboardView> {
                 alignment: Alignment.center,
                 child: _MonthlyStudyProgress(
                   progress: dashboard.monthlyProgress,
+                ),
+              ),
+              const SizedBox(height: 22),
+              Align(
+                alignment: Alignment.centerRight,
+                child: _OpenSourceLicensesLink(
+                  onPressed: widget.onOpenLicenses,
                 ),
               ),
             ],
@@ -1000,6 +1017,32 @@ class _AddProgramButton extends StatelessWidget {
   }
 }
 
+class _OpenSourceLicensesLink extends StatelessWidget {
+  const _OpenSourceLicensesLink({required this.onPressed});
+
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return TextButton.icon(
+      key: const ValueKey('home-open-source-licenses-link'),
+      onPressed: onPressed,
+      label: const Text('オープンソースライセンス'),
+      style: TextButton.styleFrom(
+        foregroundColor: const Color(0xff9b9ba4),
+        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+        minimumSize: Size.zero,
+        tapTargetSize: MaterialTapTargetSize.padded,
+        textStyle: const TextStyle(
+          fontFamily: 'Noto Sans Japanese',
+          fontSize: 11,
+          fontWeight: FontWeight.w500,
+        ),
+      ),
+    );
+  }
+}
+
 class _AddProgramButtonPainter extends CustomPainter {
   const _AddProgramButtonPainter();
 
@@ -1013,7 +1056,7 @@ class _AddProgramButtonPainter extends CustomPainter {
     const center = Offset(15, 15);
     const radius = 12.0;
     for (var index = 0; index < 16; index++) {
-      final start = (index * 3.14159265359 / 8) + 0.05;
+      final start = (index * 3.14159265359 / 8 + 0.05).toDouble();
       canvas.drawArc(
         Rect.fromCircle(center: center, radius: radius),
         start,
