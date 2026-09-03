@@ -56,6 +56,7 @@ class _HomePageState extends State<HomePage> {
 
   int _selectedIndex = 2;
   var _isLearnQuestionViewVisible = false;
+  var _isStartingLearningFromHome = false;
   late final TopNavigationRepository _topNavigationRepository;
   late final Future<TopNavigationStatus> _topNavigationStatusFuture;
 
@@ -105,7 +106,10 @@ class _HomePageState extends State<HomePage> {
 
   void _handleStartLearningFromHome(LearningTask? task) {
     if (!mounted) return;
-    setState(() => _selectedIndex = 1);
+    setState(() {
+      _selectedIndex = 1;
+      _isStartingLearningFromHome = true;
+    });
     _startLearningRequest.value = LearnTaskStartRequest(
       filters: task == null
           ? const []
@@ -134,7 +138,9 @@ class _HomePageState extends State<HomePage> {
       body: Stack(
         children: [
           AnimatedSwitcher(
-            duration: const Duration(milliseconds: 260),
+            duration: Duration(
+              milliseconds: _isStartingLearningFromHome ? 480 : 260,
+            ),
             reverseDuration: const Duration(milliseconds: 180),
             switchInCurve: Curves.easeOutCubic,
             switchOutCurve: Curves.easeInCubic,
@@ -150,6 +156,40 @@ class _HomePageState extends State<HomePage> {
               );
             },
             transitionBuilder: (child, animation) {
+              if (_isStartingLearningFromHome) {
+                final fadeAnimation = CurvedAnimation(
+                  parent: animation,
+                  curve: const Interval(0, 0.78, curve: Curves.easeOutCubic),
+                );
+                final slideAnimation = Tween<Offset>(
+                  begin: const Offset(0, 0.075),
+                  end: Offset.zero,
+                ).animate(
+                  CurvedAnimation(
+                    parent: animation,
+                    curve: Curves.easeOutCubic,
+                  ),
+                );
+                final scaleAnimation = Tween<double>(
+                  begin: 0.96,
+                  end: 1,
+                ).animate(
+                  CurvedAnimation(
+                    parent: animation,
+                    curve: Curves.easeOutBack,
+                  ),
+                );
+                return FadeTransition(
+                  opacity: fadeAnimation,
+                  child: SlideTransition(
+                    position: slideAnimation,
+                    child: ScaleTransition(
+                      scale: scaleAnimation,
+                      child: child,
+                    ),
+                  ),
+                );
+              }
               final slideAnimation = Tween<Offset>(
                 begin: const Offset(0.018, 0),
                 end: Offset.zero,
@@ -201,6 +241,7 @@ class _HomePageState extends State<HomePage> {
                       onTabSelected: (index) {
                         setState(() {
                           _selectedIndex = index;
+                          _isStartingLearningFromHome = false;
                         });
                       },
                     ),
