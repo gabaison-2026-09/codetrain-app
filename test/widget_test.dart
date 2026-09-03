@@ -814,7 +814,14 @@ void main() {
     await tester.pump(const Duration(milliseconds: 600));
 
     expect(find.text('学習'), findsOneWidget);
-    expect(find.text('JavaScript 基礎'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('learn-language-javascript')),
+      findsOneWidget,
+    );
+    expect(find.text('JavaScript'), findsOneWidget);
+
+    expect(find.byKey(const ValueKey('learn-difficulty-filter')), findsOneWidget);
+    expect(find.byType(RangeSlider), findsOneWidget);
 
     final arrayNode = find.byKey(const ValueKey('learn-node-node-arrays'));
     await tester.ensureVisible(arrayNode);

@@ -1008,7 +1008,7 @@ class _LanguageGlyphIcon extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final fontSize = label.length > 2 ? 9.5 : 13;
+    final double fontSize = label.length > 2 ? 9.5 : 13.0;
     return SizedBox(
       width: 36,
       height: 36,

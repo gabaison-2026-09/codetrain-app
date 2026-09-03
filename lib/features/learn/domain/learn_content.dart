@@ -31,12 +31,14 @@ class LearnCatalog {
 class LearnSkill {
   const LearnSkill({
     required this.id,
+    required this.language,
     required this.name,
     required this.description,
     required this.nodes,
   });
 
   final String id;
+  final String language;
   final String name;
   final String description;
   final List<LearnSkillNode> nodes;
