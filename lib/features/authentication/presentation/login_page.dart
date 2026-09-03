@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../domain/auth_repository.dart';
 
+enum _SignInMethod { email, google }
+
 class LoginPage extends StatefulWidget {
   const LoginPage({
     super.key,
@@ -25,8 +27,10 @@ class _LoginPageState extends State<LoginPage> {
   final _passwordController = TextEditingController();
 
   var _isPasswordVisible = false;
-  var _isSubmitting = false;
+  _SignInMethod? _submittingMethod;
   String? _errorMessage;
+
+  bool get _isSubmitting => _submittingMethod != null;
 
   @override
   void dispose() {
@@ -39,6 +43,7 @@ class _LoginPageState extends State<LoginPage> {
     FocusScope.of(context).unfocus();
     if (!(_formKey.currentState?.validate() ?? false)) return;
     await _signIn(
+      _SignInMethod.email,
       () => widget.repository.signInWithEmail(
         email: _emailController.text.trim(),
         password: _passwordController.text,
@@ -48,13 +53,16 @@ class _LoginPageState extends State<LoginPage> {
 
   Future<void> _handleGoogleSignIn() async {
     FocusScope.of(context).unfocus();
-    await _signIn(widget.repository.signInWithGoogle);
+    await _signIn(_SignInMethod.google, widget.repository.signInWithGoogle);
   }
 
-  Future<void> _signIn(Future<AuthSession> Function() request) async {
+  Future<void> _signIn(
+    _SignInMethod method,
+    Future<AuthSession> Function() request,
+  ) async {
     if (_isSubmitting) return;
     setState(() {
-      _isSubmitting = true;
+      _submittingMethod = method;
       _errorMessage = null;
     });
     try {
@@ -68,7 +76,7 @@ class _LoginPageState extends State<LoginPage> {
       if (!mounted) return;
       setState(() => _errorMessage = 'ログインできませんでした');
     } finally {
-      if (mounted) setState(() => _isSubmitting = false);
+      if (mounted) setState(() => _submittingMethod = null);
     }
   }
 
@@ -180,7 +188,7 @@ class _LoginPageState extends State<LoginPage> {
                                 ),
                                 elevation: 0,
                               ),
-                              child: _isSubmitting
+                              child: _submittingMethod == _SignInMethod.email
                                   ? const SizedBox.square(
                                       dimension: 22,
                                       child: CircularProgressIndicator(
@@ -212,7 +220,16 @@ class _LoginPageState extends State<LoginPage> {
                                   borderRadius: BorderRadius.circular(14),
                                 ),
                               ),
-                              icon: const _GoogleMark(),
+                              icon:
+                                  _submittingMethod == _SignInMethod.google
+                                      ? const SizedBox.square(
+                                          dimension: 22,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                            color: _purple,
+                                          ),
+                                        )
+                                      : const _GoogleMark(),
                               label: const Text(
                                 'Googleでログイン',
                                 style: TextStyle(

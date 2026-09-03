@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:codetrain_app/app/app.dart';
+import 'package:codetrain_app/features/authentication/domain/auth_repository.dart';
 import 'package:codetrain_app/features/calendar/data/calendar_response_dto.dart';
 import 'package:codetrain_app/features/calendar/data/mock_calendar_repository.dart';
 import 'package:codetrain_app/features/calendar/presentation/calendar_page.dart';
@@ -25,7 +28,8 @@ void main() {
   testWidgets('login is shown on launch and Google sign-in opens home', (
     WidgetTester tester,
   ) async {
-    await tester.pumpWidget(const CodeTrainApp());
+    final authRepository = _PendingGoogleAuthRepository();
+    await tester.pumpWidget(CodeTrainApp(authRepository: authRepository));
 
     expect(find.text('CodeTrain'), findsOneWidget);
     expect(
@@ -39,6 +43,24 @@ void main() {
     expect(find.byType(CodeTrainTopNavigation), findsNothing);
 
     await tester.tap(find.byKey(const ValueKey('login-google-button')));
+    await tester.pump();
+
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('login-submit-button')),
+        matching: find.byType(CircularProgressIndicator),
+      ),
+      findsNothing,
+    );
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('login-google-button')),
+        matching: find.byType(CircularProgressIndicator),
+      ),
+      findsOneWidget,
+    );
+
+    authRepository.completeGoogleSignIn();
     await tester.pumpAndSettle();
 
     expect(find.byType(CodeTrainTopNavigation), findsOneWidget);
@@ -795,4 +817,28 @@ class _FakeHomeDashboardRepository implements HomeDashboardRepository {
       monthlyProgress: const HomeMonthlyProgress(studiedDays: 16, maxDays: 30),
     );
   }
+}
+
+class _PendingGoogleAuthRepository implements AuthRepository {
+  final _googleSignInCompleter = Completer<AuthSession>();
+
+  void completeGoogleSignIn() {
+    _googleSignInCompleter.complete(
+      const AuthSession(
+        userId: 'google-user',
+        idToken: 'google-id-token',
+      ),
+    );
+  }
+
+  @override
+  Future<AuthSession> signInWithEmail({
+    required String email,
+    required String password,
+  }) {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<AuthSession> signInWithGoogle() => _googleSignInCompleter.future;
 }
