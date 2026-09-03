@@ -9,6 +9,7 @@ import '../domain/home_dashboard_repository.dart';
 import '../../task/domain/task_configuration.dart';
 import '../../task/domain/task_launcher.dart';
 import '../../task/domain/task_repository.dart';
+import '../../../shared/widgets/programming_language_icon.dart';
 
 class HomeTabPage extends StatefulWidget {
   const HomeTabPage({
@@ -974,63 +975,15 @@ class _ProgramIcon extends StatelessWidget {
   Widget build(BuildContext context) {
     switch (language) {
       case HomeLanguage.csharp:
-        return const _LanguageGlyphIcon(
-          label: 'C#',
-          backgroundColor: Color(0xffded7e9),
-          borderColor: Color(0xffa99bb9),
-        );
+        return const ProgrammingLanguageIcon(language: 'csharp', size: 36);
       case HomeLanguage.typescript:
-        return const _LanguageGlyphIcon(
-          label: 'TS',
-          backgroundColor: Color(0xffd3e2ec),
-          borderColor: Color(0xff8eafc5),
+        return const ProgrammingLanguageIcon(
+          language: 'typescript',
+          size: 36,
         );
       case HomeLanguage.ruby:
-        return const _LanguageGlyphIcon(
-          label: 'Ruby',
-          backgroundColor: Color(0xffecd1d1),
-          borderColor: Color(0xffb98585),
-        );
+        return const ProgrammingLanguageIcon(language: 'ruby', size: 36);
     }
-  }
-}
-
-class _LanguageGlyphIcon extends StatelessWidget {
-  const _LanguageGlyphIcon({
-    required this.label,
-    required this.backgroundColor,
-    required this.borderColor,
-  });
-
-  final String label;
-  final Color backgroundColor;
-  final Color borderColor;
-
-  @override
-  Widget build(BuildContext context) {
-    final double fontSize = label.length > 2 ? 9.5 : 13.0;
-    return SizedBox(
-      width: 36,
-      height: 36,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: backgroundColor,
-          shape: BoxShape.circle,
-          border: Border.all(color: borderColor),
-        ),
-        child: Center(
-          child: Text(
-            label,
-            style: TextStyle(
-              color: const Color(0xff4c4c55),
-              fontFamily: 'Russo One',
-              fontSize: fontSize,
-              fontWeight: FontWeight.w400,
-            ),
-          ),
-        ),
-      ),
-    );
   }
 }
 

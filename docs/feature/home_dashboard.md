@@ -44,9 +44,9 @@
 - モック実装: `lib/features/home/data/mock_home_dashboard_repository.dart`
 - 開始処理の境界: `lib/features/task/domain/task_launcher.dart`
 - フォント: `assets/fonts/Jua-Regular.ttf`、`assets/fonts/RussoOne-Regular.ttf`、`assets/fonts/NotoSansJapanese-Regular.ttf`
-- 言語識別アセット: `assets/icons/programming_languages/`（C、C++、C#、Dart、Go、Java、JavaScript、Kotlin、PHP、Python、Ruby、Rust、Swift、TypeScript）。許諾条件が明確でない言語は中立的な文字アイコンを使用する。
-- ホーム画面の言語表示は、ブランドロゴを使わない中立的な文字アイコンを使用し、言語ごとに彩度を抑えたアプリ独自の背景色と輪郭色を割り当てる。
+- 言語識別アセット: `assets/icons/programming_languages/`（C、C++、C#、Dart、Go、Java、JavaScript、Kotlin、PHP、Python、Ruby、Rust、Swift、TypeScript）。各言語の公式Devicon SVGを使用し、出典と追加ライセンス条件は `THIRD_PARTY_NOTICES.md` に記録する。
+- ホーム画面の言語表示は `lib/shared/widgets/programming_language_icon.dart` を使用し、学習画面と同じ公式ロゴを表示する。言語ロゴ固有の色は変更しない。
 
 ## 実装状況
 
-実装済み。現在日付を使ったモック表示、タスク消化割合の円弧ゲージ、当月の学習進捗、控えめなセクション装飾、タスク画面で選択した最大3件の学習タスクのスワイプ切り替え、再生ボタンによる学習画面への遷移と問題開始、選択タスクに応じた言語アイコン列を表示している。復習導線は保留中。
+実装済み。現在日付を使ったモック表示、タスク消化割合の円弧ゲージ、当月の学習進捗、控えめなセクション装飾、タスク画面で選択した最大3件の学習タスクのスワイプ切り替え、再生ボタンによる学習画面への遷移と問題開始、選択タスクに応じた公式言語ロゴ列を表示している。復習導線は保留中。

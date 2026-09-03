@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../domain/learn_content.dart';
+import '../../../../shared/widgets/programming_language_icon.dart';
 
 class LearnSelectionView extends StatefulWidget {
   const LearnSelectionView({
@@ -372,7 +373,7 @@ class _LanguageButton extends StatelessWidget {
                 height: 44,
                 padding: const EdgeInsets.all(3),
                 decoration: BoxDecoration(
-                  shape: BoxShape.circle,
+                  borderRadius: BorderRadius.circular(10),
                   border: Border.all(
                     color: isSelected
                         ? const Color(0xff6263d9)
@@ -380,9 +381,9 @@ class _LanguageButton extends StatelessWidget {
                     width: 2,
                   ),
                 ),
-                child: _LanguageGlyph(
-                  option: option,
-                  isSelected: isSelected,
+                child: ProgrammingLanguageIcon(
+                  language: option.name,
+                  size: 38,
                 ),
               ),
               const SizedBox(height: 6),
@@ -408,120 +409,31 @@ class _LanguageButton extends StatelessWidget {
   }
 }
 
-class _LanguageGlyph extends StatelessWidget {
-  const _LanguageGlyph({required this.option, required this.isSelected});
-
-  final _LearnLanguageOption option;
-  final bool isSelected;
-
-  @override
-  Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: option.backgroundColor,
-        shape: BoxShape.circle,
-        border: Border.all(color: option.borderColor),
-      ),
-      child: Center(
-        child: Text(
-          option.glyph,
-          style: TextStyle(
-            color: isSelected ? const Color(0xff393941) : option.textColor,
-            fontFamily: 'Russo One',
-            fontSize: option.glyph.length > 2 ? 10 : 13,
-            fontWeight: FontWeight.w400,
-          ),
-        ),
-      ),
-    );
-  }
-}
-
 class _LearnLanguageOption {
   const _LearnLanguageOption({
     required this.key,
     required this.name,
-    required this.glyph,
-    required this.backgroundColor,
-    required this.borderColor,
-    required this.textColor,
     required this.skills,
   });
 
   factory _LearnLanguageOption.fromSkill(LearnSkill skill) {
     final name = skill.language;
     final key = name.toLowerCase();
-    final metadata = switch (key) {
-      'c#' => (
-        glyph: 'C#',
-        backgroundColor: const Color(0xffded7e9),
-        borderColor: const Color(0xffa99bb9),
-        textColor: const Color(0xff4c4055),
-      ),
-      'typescript' => (
-        glyph: 'TS',
-        backgroundColor: const Color(0xffd3e2ec),
-        borderColor: const Color(0xff8eafc5),
-        textColor: const Color(0xff345268),
-      ),
-      'javascript' => (
-        glyph: 'JS',
-        backgroundColor: const Color(0xffe8e1b7),
-        borderColor: const Color(0xffbbb176),
-        textColor: const Color(0xff5d572d),
-      ),
-      'ruby' => (
-        glyph: 'Rb',
-        backgroundColor: const Color(0xffecd1d1),
-        borderColor: const Color(0xffb98585),
-        textColor: const Color(0xff773838),
-      ),
-      'python' => (
-        glyph: 'Py',
-        backgroundColor: const Color(0xffd7e3ef),
-        borderColor: const Color(0xff8da9c6),
-        textColor: const Color(0xff365675),
-      ),
-      'dart' => (
-        glyph: 'D',
-        backgroundColor: const Color(0xffd2e7f2),
-        borderColor: const Color(0xff82b4ce),
-        textColor: const Color(0xff2d617c),
-      ),
-      _ => (
-        glyph: name.length > 3 ? name.substring(0, 2) : name,
-        backgroundColor: const Color(0xffe3e3e9),
-        borderColor: const Color(0xffb7b7c2),
-        textColor: const Color(0xff4c4c55),
-      ),
-    };
     return _LearnLanguageOption(
       key: key,
       name: name,
-      glyph: metadata.glyph,
-      backgroundColor: metadata.backgroundColor,
-      borderColor: metadata.borderColor,
-      textColor: metadata.textColor,
       skills: [skill],
     );
   }
 
   final String key;
   final String name;
-  final String glyph;
-  final Color backgroundColor;
-  final Color borderColor;
-  final Color textColor;
   final List<LearnSkill> skills;
 
   _LearnLanguageOption addSkill(LearnSkill skill) {
     return _LearnLanguageOption(
       key: key,
       name: name,
-      glyph: glyph,
-      backgroundColor: backgroundColor,
-      borderColor: borderColor,
-      textColor: textColor,
       skills: [...skills, skill],
     );
   }

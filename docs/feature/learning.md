@@ -36,6 +36,7 @@
 
 - 画面状態と遷移: `lib/features/learn/presentation/learn_page.dart`
 - 学習選択UI: `lib/features/learn/presentation/widgets/learn_selection_view.dart`（言語アイコン選択、検索、難易度範囲スライダー）
+- 言語ロゴ表示: `lib/shared/widgets/programming_language_icon.dart`（言語名から公式SVGアセットへの解決と表示）
 - 四択問題UI: `lib/features/learn/presentation/widgets/learn_question_view.dart`
 - ドメインモデル: `lib/features/learn/domain/learn_content.dart`
 - Repository: `lib/features/learn/domain/learn_repository.dart`
@@ -44,4 +45,4 @@
 
 ## 実装状況
 
-言語アイコンによるカテゴリー選択、学習項目の検索・難易度範囲スライダーによる絞り込みと選択、問題セットの開始、ホームタスクの設定に対応した問題の開始、四択回答、正誤と解説の表示、継続的な問題の進行、途中終了、直近5問の振り返りを含む5問ごとのフィードバックをモックデータで実装済み。獲得XPは回答直後の結果パネルにのみ表示する。振り返りデータはセッション内のメモリだけで保持し、途中終了・画面を離れる・アプリを終了すると破棄する。API通信の具体実装は未接続。
+言語ロゴSVGによるカテゴリー選択、学習項目の検索・難易度範囲スライダーによる絞り込みと選択、問題セットの開始、ホームタスクの設定に対応した問題の開始、四択回答、正誤と解説の表示、継続的な問題の進行、途中終了、直近5問の振り返りを含む5問ごとのフィードバックをモックデータで実装済み。獲得XPは回答直後の結果パネルにのみ表示する。振り返りデータはセッション内のメモリだけで保持し、途中終了・画面を離れる・アプリを終了すると破棄する。API通信の具体実装は未接続。
