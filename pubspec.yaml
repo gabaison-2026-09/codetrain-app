@@ -68,6 +68,9 @@ flutter:
       fonts:
         - asset: assets/fonts/NotoSansJapanese-Regular.ttf
 
+  assets:
+    - assets/icons/programming_languages/
+
   # To add assets to your application, add an assets section, like this:
   # assets:
   #   - images/a_dot_burr.jpeg

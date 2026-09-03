@@ -974,124 +974,64 @@ class _ProgramIcon extends StatelessWidget {
   Widget build(BuildContext context) {
     switch (language) {
       case HomeLanguage.csharp:
-        return const _CSharpIcon();
+        return const _LanguageGlyphIcon(
+          label: 'C#',
+          backgroundColor: Color(0xffded7e9),
+          borderColor: Color(0xffa99bb9),
+        );
       case HomeLanguage.typescript:
-        return const _TypeScriptIcon();
+        return const _LanguageGlyphIcon(
+          label: 'TS',
+          backgroundColor: Color(0xffd3e2ec),
+          borderColor: Color(0xff8eafc5),
+        );
       case HomeLanguage.ruby:
-        return const _RubyIcon();
+        return const _LanguageGlyphIcon(
+          label: 'Ruby',
+          backgroundColor: Color(0xffecd1d1),
+          borderColor: Color(0xffb98585),
+        );
     }
   }
 }
 
-class _CSharpIcon extends StatelessWidget {
-  const _CSharpIcon();
+class _LanguageGlyphIcon extends StatelessWidget {
+  const _LanguageGlyphIcon({
+    required this.label,
+    required this.backgroundColor,
+    required this.borderColor,
+  });
+
+  final String label;
+  final Color backgroundColor;
+  final Color borderColor;
 
   @override
   Widget build(BuildContext context) {
-    return const SizedBox(
-      width: 36,
-      height: 36,
-      child: CustomPaint(painter: _CSharpIconPainter()),
-    );
-  }
-}
-
-class _CSharpIconPainter extends CustomPainter {
-  const _CSharpIconPainter();
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final path = Path()
-      ..moveTo(size.width / 2, 0)
-      ..lineTo(size.width - 2.4, 8.4)
-      ..lineTo(size.width - 2.4, 27.6)
-      ..lineTo(size.width / 2, size.height)
-      ..lineTo(2.4, 27.6)
-      ..lineTo(2.4, 8.4)
-      ..close();
-    canvas.drawPath(path, Paint()..color = const Color(0xff0566a8));
-    final painter = TextPainter(
-      text: const TextSpan(
-        text: 'C#',
-        style: TextStyle(
-          color: Colors.white,
-          fontSize: 17,
-          fontWeight: FontWeight.w700,
-        ),
-      ),
-      textDirection: TextDirection.ltr,
-    )..layout();
-    painter.paint(canvas, Offset((size.width - painter.width) / 2, 8.5));
-  }
-
-  @override
-  bool shouldRepaint(covariant _CSharpIconPainter oldDelegate) => false;
-}
-
-class _TypeScriptIcon extends StatelessWidget {
-  const _TypeScriptIcon();
-
-  @override
-  Widget build(BuildContext context) {
-    return const SizedBox(
+    final fontSize = label.length > 2 ? 9.5 : 13;
+    return SizedBox(
       width: 36,
       height: 36,
       child: DecoratedBox(
-        decoration: BoxDecoration(color: Color(0xff367bbb)),
+        decoration: BoxDecoration(
+          color: backgroundColor,
+          shape: BoxShape.circle,
+          border: Border.all(color: borderColor),
+        ),
         child: Center(
           child: Text(
-            'TS',
+            label,
             style: TextStyle(
-              color: Colors.white,
-              fontSize: 18,
-              fontWeight: FontWeight.w700,
+              color: const Color(0xff4c4c55),
+              fontFamily: 'Russo One',
+              fontSize: fontSize,
+              fontWeight: FontWeight.w400,
             ),
           ),
         ),
       ),
     );
   }
-}
-
-class _RubyIcon extends StatelessWidget {
-  const _RubyIcon();
-
-  @override
-  Widget build(BuildContext context) {
-    return const SizedBox(
-      width: 36,
-      height: 36,
-      child: CustomPaint(painter: _RubyIconPainter()),
-    );
-  }
-}
-
-class _RubyIconPainter extends CustomPainter {
-  const _RubyIconPainter();
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    canvas.scale(size.width / 30, size.height / 30);
-    final paint = Paint()..color = const Color(0xffd52d36);
-    final left = Path()
-      ..moveTo(2, 8)
-      ..lineTo(11, 2)
-      ..lineTo(17, 10)
-      ..lineTo(9, 28)
-      ..close();
-    final right = Path()
-      ..moveTo(17, 10)
-      ..lineTo(28, 5)
-      ..lineTo(26, 22)
-      ..lineTo(9, 28)
-      ..close();
-    canvas.drawPath(left, paint);
-    canvas.drawPath(right, paint);
-    canvas.drawCircle(const Offset(18, 10), 3, Paint()..color = Colors.white);
-  }
-
-  @override
-  bool shouldRepaint(covariant _RubyIconPainter oldDelegate) => false;
 }
 
 class _AddProgramButton extends StatelessWidget {

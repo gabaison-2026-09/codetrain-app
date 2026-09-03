@@ -44,6 +44,8 @@
 - モック実装: `lib/features/home/data/mock_home_dashboard_repository.dart`
 - 開始処理の境界: `lib/features/task/domain/task_launcher.dart`
 - フォント: `assets/fonts/Jua-Regular.ttf`、`assets/fonts/RussoOne-Regular.ttf`、`assets/fonts/NotoSansJapanese-Regular.ttf`
+- 言語識別アセット: `assets/icons/programming_languages/`（C、C++、C#、Dart、Go、Java、JavaScript、Kotlin、PHP、Python、Ruby、Rust、Swift、TypeScript）。許諾条件が明確でない言語は中立的な文字アイコンを使用する。
+- ホーム画面の言語表示は、ブランドロゴを使わない中立的な文字アイコンを使用し、言語ごとに彩度を抑えたアプリ独自の背景色と輪郭色を割り当てる。
 
 ## 実装状況
 
