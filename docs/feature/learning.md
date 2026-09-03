@@ -37,6 +37,7 @@
 - 画面状態と遷移: `lib/features/learn/presentation/learn_page.dart`
 - 学習選択UI: `lib/features/learn/presentation/widgets/learn_selection_view.dart`（言語アイコン選択、検索、難易度範囲スライダー）
 - 言語ロゴ表示: `lib/shared/widgets/programming_language_icon.dart`（言語名から公式SVGアセットへの解決と表示）
+- 言語選択UI: `lib/shared/widgets/programming_language_selector.dart`（学習画面とタスク編集画面で共通利用）
 - 四択問題UI: `lib/features/learn/presentation/widgets/learn_question_view.dart`
 - ドメインモデル: `lib/features/learn/domain/learn_content.dart`
 - Repository: `lib/features/learn/domain/learn_repository.dart`

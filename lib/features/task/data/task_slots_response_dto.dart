@@ -5,22 +5,28 @@ class TaskSlotDto {
     required this.slotNo,
     required this.questionType,
     required this.language,
-    required this.difficulty,
+    required this.minimumDifficulty,
+    required this.maximumDifficulty,
   });
 
   factory TaskSlotDto.fromJson(Map<String, Object?> json) {
+    final legacyDifficulty = json['difficulty'] as int?;
     return TaskSlotDto(
       slotNo: json['slot_no']! as int,
       questionType: json['question_type'] as String?,
       language: json['language'] as String? ?? '',
-      difficulty: json['difficulty'] as int?,
+      minimumDifficulty:
+          json['minimum_difficulty'] as int? ?? legacyDifficulty,
+      maximumDifficulty:
+          json['maximum_difficulty'] as int? ?? legacyDifficulty,
     );
   }
 
   final int slotNo;
   final String? questionType;
   final String language;
-  final int? difficulty;
+  final int? minimumDifficulty;
+  final int? maximumDifficulty;
 
   TaskSlot toDomain() => TaskSlot(
         slotNo: slotNo,
@@ -28,7 +34,8 @@ class TaskSlotDto {
             ? null
             : _questionTypeFromApiValue(questionType!),
         language: language,
-        difficulty: difficulty,
+        minimumDifficulty: minimumDifficulty,
+        maximumDifficulty: maximumDifficulty,
       );
 }
 

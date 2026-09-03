@@ -67,11 +67,18 @@ class MockTaskRepository implements TaskRepository {
     {'question_type': 'code_reading', 'language': 'typescript', 'difficulty': 1},
     {'question_type': 'code_reading', 'language': 'typescript', 'difficulty': 2},
     {'question_type': 'code_reading', 'language': 'typescript', 'difficulty': 3},
+    {'question_type': 'code_reading', 'language': 'typescript', 'difficulty': 4},
+    {'question_type': 'code_reading', 'language': 'typescript', 'difficulty': 5},
     {'question_type': 'code_reading', 'language': 'ruby', 'difficulty': 1},
     {'question_type': 'code_reading', 'language': 'ruby', 'difficulty': 2},
+    {'question_type': 'code_reading', 'language': 'ruby', 'difficulty': 3},
+    {'question_type': 'code_reading', 'language': 'ruby', 'difficulty': 4},
+    {'question_type': 'code_reading', 'language': 'ruby', 'difficulty': 5},
     {'question_type': 'output_prediction', 'language': '', 'difficulty': 1},
     {'question_type': 'output_prediction', 'language': '', 'difficulty': 2},
     {'question_type': 'output_prediction', 'language': '', 'difficulty': 3},
+    {'question_type': 'output_prediction', 'language': '', 'difficulty': 4},
+    {'question_type': 'output_prediction', 'language': '', 'difficulty': 5},
   ];
 
   final List<LearningTask> _tasks;

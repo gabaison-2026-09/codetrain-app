@@ -12,13 +12,20 @@ class TaskSlot {
     required this.slotNo,
     this.questionType,
     this.language = '',
-    this.difficulty,
+    this.minimumDifficulty,
+    this.maximumDifficulty,
   });
 
   final int slotNo;
   final TaskQuestionType? questionType;
   final String language;
-  final int? difficulty;
+  final int? minimumDifficulty;
+  final int? maximumDifficulty;
+
+  /// 旧形式との互換用。範囲指定時は単一値を返さない。
+  int? get difficulty => minimumDifficulty == maximumDifficulty
+      ? minimumDifficulty
+      : null;
 
   bool get isConfigured => questionType != null;
 }

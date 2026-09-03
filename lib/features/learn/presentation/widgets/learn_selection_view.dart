@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../domain/learn_content.dart';
-import '../../../../shared/widgets/programming_language_icon.dart';
+import '../../../../shared/widgets/programming_language_selector.dart';
 
 class LearnSelectionView extends StatefulWidget {
   const LearnSelectionView({
@@ -193,10 +193,19 @@ class _LearnSelectionViewState extends State<LearnSelectionView> {
                   ),
                 ),
                 const SizedBox(height: 10),
-                _LanguageSelector(
-                  options: _languageOptions,
-                  selectedKey: _selectedLanguageKey,
-                  onChanged: _handleLanguageChanged,
+                ProgrammingLanguageSelector(
+                  languages: [
+                    for (final option in _languageOptions) option.name,
+                  ],
+                  selectedLanguage: _selectedLanguageKey,
+                  keyPrefix: 'learn-language',
+                  semanticsLabel: '学習言語',
+                  onChanged: (language) {
+                    final option = _languageOptions.firstWhere(
+                      (option) => option.key == language.toLowerCase(),
+                    );
+                    _handleLanguageChanged(option);
+                  },
                 ),
                 const SizedBox(height: 18),
                 _DifficultySelector(
@@ -295,115 +304,6 @@ class _SelectionTitle extends StatelessWidget {
         fontFamily: 'Noto Sans Japanese',
         fontSize: 30,
         fontWeight: FontWeight.w600,
-      ),
-    );
-  }
-}
-
-class _LanguageSelector extends StatelessWidget {
-  const _LanguageSelector({
-    required this.options,
-    required this.selectedKey,
-    required this.onChanged,
-  });
-
-  final List<_LearnLanguageOption> options;
-  final String selectedKey;
-  final ValueChanged<_LearnLanguageOption> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    if (options.isEmpty) return const SizedBox.shrink();
-
-    return Semantics(
-      container: true,
-      label: '学習言語',
-      child: SizedBox(
-        height: 82,
-        child: SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          padding: const EdgeInsets.symmetric(horizontal: 2),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              for (final option in options) ...[
-                _LanguageButton(
-                  option: option,
-                  isSelected: option.key == selectedKey,
-                  onTap: () => onChanged(option),
-                ),
-                const SizedBox(width: 12),
-              ],
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _LanguageButton extends StatelessWidget {
-  const _LanguageButton({
-    required this.option,
-    required this.isSelected,
-    required this.onTap,
-  });
-
-  final _LearnLanguageOption option;
-  final bool isSelected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Semantics(
-      selected: isSelected,
-      button: true,
-      label: option.name,
-      child: InkWell(
-        key: ValueKey('learn-language-${option.key}'),
-        borderRadius: BorderRadius.circular(10),
-        onTap: onTap,
-        child: SizedBox(
-          width: 64,
-          child: Column(
-            children: [
-              AnimatedContainer(
-                duration: const Duration(milliseconds: 180),
-                width: 44,
-                height: 44,
-                padding: const EdgeInsets.all(3),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(
-                    color: isSelected
-                        ? const Color(0xff6263d9)
-                        : Colors.transparent,
-                    width: 2,
-                  ),
-                ),
-                child: ProgrammingLanguageIcon(
-                  language: option.name,
-                  size: 38,
-                ),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                option.name,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: isSelected
-                      ? const Color(0xff6263d9)
-                      : const Color(0xff55555e),
-                  fontFamily: 'Noto Sans Japanese',
-                  fontSize: 11,
-                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
-                ),
-              ),
-            ],
-          ),
-        ),
       ),
     );
   }

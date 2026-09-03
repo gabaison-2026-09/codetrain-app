@@ -367,9 +367,12 @@ class MockLearnRepository implements LearnRepository {
         final matchesLanguage =
             filter.language.isEmpty ||
             question.codeLanguage == filter.language;
-        final matchesDifficulty =
-            filter.difficulty == null ||
-            question.difficulty == filter.difficulty;
+        final minimumDifficulty = filter.minimumDifficulty;
+        final maximumDifficulty = filter.maximumDifficulty;
+        final matchesDifficulty = minimumDifficulty == null ||
+            (maximumDifficulty != null &&
+                question.difficulty >= minimumDifficulty &&
+                question.difficulty <= maximumDifficulty);
         if (matchesType && matchesLanguage && matchesDifficulty) {
           if (selectedQuestionIds.add(question.id)) {
             selectedQuestions.add(question);

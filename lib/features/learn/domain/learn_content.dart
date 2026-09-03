@@ -4,12 +4,14 @@ class LearnQuestionFilter {
   const LearnQuestionFilter({
     required this.type,
     this.language = '',
-    this.difficulty,
+    this.minimumDifficulty,
+    this.maximumDifficulty,
   });
 
   final LearnQuestionType type;
   final String language;
-  final int? difficulty;
+  final int? minimumDifficulty;
+  final int? maximumDifficulty;
 }
 
 class LearnTaskStartRequest {
