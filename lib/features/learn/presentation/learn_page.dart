@@ -1,5 +1,6 @@
 import 'dart:math';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -14,11 +15,15 @@ class LearnPage extends StatefulWidget {
     super.key,
     required this.repository,
     this.initialCatalog,
+    this.startLearningRequest,
+    this.onStartLearningRequestConsumed,
     this.onQuestionViewChanged,
   });
 
   final LearnRepository repository;
   final LearnCatalog? initialCatalog;
+  final ValueListenable<LearnTaskStartRequest?>? startLearningRequest;
+  final VoidCallback? onStartLearningRequestConsumed;
   final ValueChanged<bool>? onQuestionViewChanged;
 
   @override
@@ -58,9 +63,48 @@ class _LearnPageState extends State<LearnPage> {
     _catalogFuture = widget.repository.fetchCatalog();
     _selectedNodeId =
         widget.initialCatalog?.skills.firstOrNull?.nodes.firstOrNull?.id;
+    final startLearningRequest = widget.startLearningRequest;
+    if (startLearningRequest != null) {
+      startLearningRequest.addListener(_handleStartLearningRequest);
+      if (startLearningRequest.value != null) {
+        _startLearningAfterCatalogReady(startLearningRequest.value!);
+      }
+    }
   }
 
-  Future<void> _handleStart() async {
+  @override
+  void dispose() {
+    widget.startLearningRequest?.removeListener(_handleStartLearningRequest);
+    super.dispose();
+  }
+
+  void _handleStartLearningRequest() {
+    if (!mounted) return;
+    final startLearningRequest = widget.startLearningRequest?.value;
+    if (startLearningRequest == null) {
+      return;
+    }
+    _startLearningAfterCatalogReady(startLearningRequest);
+  }
+
+  Future<void> _startLearningAfterCatalogReady(
+    LearnTaskStartRequest request,
+  ) async {
+    widget.onStartLearningRequestConsumed?.call();
+    try {
+      final catalog = await _catalogFuture;
+      if (!mounted) return;
+      _selectedNodeId ??= catalog.skills.firstOrNull?.nodes.firstOrNull?.id;
+      await _handleStart(request: request);
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _errorMessage = '学習内容を読み込めませんでした。もう一度お試しください。';
+      });
+    }
+  }
+
+  Future<void> _handleStart({LearnTaskStartRequest? request}) async {
     final selectedNodeId = _selectedNodeId;
     if (selectedNodeId == null || _isLoadingQuestions) return;
 
@@ -69,9 +113,11 @@ class _LearnPageState extends State<LearnPage> {
       _errorMessage = null;
     });
     try {
-      final questions = await widget.repository.fetchQuestionsForSkillNode(
-        selectedNodeId,
-      );
+      final questions = request?.isTaskBased == true
+          ? await widget.repository.fetchQuestionsForTask(
+              filters: request!.filters,
+            )
+          : await widget.repository.fetchQuestionsForSkillNode(selectedNodeId);
       if (!mounted) return;
       if (questions.isEmpty) {
         setState(() {

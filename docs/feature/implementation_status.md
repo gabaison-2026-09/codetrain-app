@@ -20,8 +20,8 @@
 | 認証 | メール／パスワード入力、パスワード表示切り替え、Googleログイン、アカウント新規作成、入力検証、認証後のホーム表示を実装済み | `MockAuthRepository` | Firebase Authenticationを実装するRepositoryへ差し替え。Firebase IDトークンをBearerトークンに使用する想定 | `lib/features/authentication/`、`lib/app/app.dart` |
 | アプリ全体・タブ切り替え | Calendar / Learn / Home / Task / Friend の5タブ、260msのフェード＋横スライド、トップ・ボトムナビゲーションの共通表示を実装済み | 画面内の状態 | API不要 | `lib/features/home/presentation/home_page.dart`、`lib/shared/widgets/` |
 | トップナビゲーション | レベル、経験値進捗、ハートを表示済み。ホーム画面の全タブ共通レイアウト上部に表示 | `MockTopNavigationRepository` | `GET /v1/me` の `progress` | `lib/shared/widgets/code_train_top_navigation.dart`、`lib/features/home/` |
-| ホームダッシュボード | 日付、連続学習日数、当日のタスク消化ゲージ、月間進捗、最大3件のホーム対象タスク、スワイプ切り替え、言語アイコン、開始操作を実装済み | `MockHomeDashboardRepository`、`MockTaskRepository` | `GET /v1/home`。連続学習日数は `GET /v1/me` の `progress.streak_days` を利用する想定 | `lib/features/home/presentation/home_tab_page.dart`、`lib/features/home/domain/` |
-| 学習 | スキル／学習項目の検索・絞り込み、学習開始、四択回答、正誤・正解・解説・XP表示、5問ごとのフィードバック、直近5問の振り返りを実装済み | `MockLearnRepository` | `GET /v1/skills`、`GET /v1/questions?skill_node_id=...`、必要に応じて `GET /v1/questions/{id}`、回答時に `POST /v1/questions/{id}/attempts` | `lib/features/learn/presentation/`、`lib/features/learn/domain/`、`lib/features/learn/data/` |
+| ホームダッシュボード | 日付、連続学習日数、当日のタスク消化ゲージ、月間進捗、最大3件のホーム対象タスク、スワイプ切り替え、言語アイコン、再生ボタンからの学習開始を実装済み | `MockHomeDashboardRepository`、`MockTaskRepository`、`MockLearnRepository` | `GET /v1/home`。連続学習日数は `GET /v1/me` の `progress.streak_days` を利用する想定 | `lib/features/home/presentation/home_page.dart`、`lib/features/home/presentation/home_tab_page.dart`、`lib/features/home/domain/` |
+| 学習 | スキル／学習項目の検索・絞り込み、タスク設定に対応した学習開始、四択回答、正誤・正解・解説・XP表示、5問ごとのフィードバック、直近5問の振り返りを実装済み | `MockLearnRepository` | `GET /v1/skills`、`GET /v1/questions?skill_node_id=...`、タスク開始時は問題種別・言語・難易度の条件で `GET /v1/questions` を利用する想定、回答時に `POST /v1/questions/{id}/attempts` | `lib/features/learn/presentation/`、`lib/features/learn/domain/`、`lib/features/learn/data/` |
 | タスク管理 | 複数タスクの一覧、開始、ホーム対象の最大3件選択、作成、編集、5スロット設定、削除を実装済み | `MockTaskRepository`、開始通知は `MockTaskLauncher` | 選択肢は `GET /v1/task-slots/options`。ただし一覧・保存・削除は現行 `/v1/task-slots` では複数タスクを表現できず、タスク単位APIの追加が必要 | `lib/features/task/presentation/task_page.dart`、`lib/features/task/domain/`、`lib/features/task/data/` |
 | Calendar | 月移動、今日への復帰、連続日をつないだ淡い紫の学習日表示、選択日のタスク設定内容・問題数・進捗表示を実装済み | `MockCalendarRepository` | `GET /v1/calendar` | `lib/features/calendar/presentation/`、`lib/features/calendar/domain/`、`lib/features/calendar/data/` |
 | Friend | モーダルでの公開用ユーザーID完全一致検索、関係別絞り込み、連続学習日数、申請送信・取消、承認・拒否、メニューからのフレンド解除を実装済み | `MockFriendRepository` | `GET /v1/users/by-code/{user_code}`、`GET /v1/friends`、`/v1/friend-requests`、`DELETE /v1/friends/{user_id}` の暫定契約 | `lib/features/friend/presentation/`、`lib/features/friend/domain/`、`lib/features/friend/data/` |
@@ -78,7 +78,7 @@ API版へ接続するときは、対象featureの `data/` にAPI Client / Data S
 - ドメインモデル: `HomeDashboard`、`HomeStudyTask`、`HomeTaskProgress`、`HomeMonthlyProgress`
 - 接続先: `GET /v1/home`、連続学習日数は `GET /v1/me` の `progress.streak_days`
 - `GET /v1/home` の `activity_date`、`tasks`、`monthly_progress`、`study_tasks` を表示用モデルへ変換するAPI版DTOが必要です。
-- `TaskLauncher.start()` は現在何もしないモックです。ホームの再生ボタンは `study_tasks.task_no` を開始対象にする想定ですが、問題取得または開始エンドポイントの具体仕様は未確定です。
+- `TaskLauncher.start()` は現在何もしないモックです。ホームの再生ボタンは開始通知後に Learn タブへ切り替え、ホームに割り当てられたタスクのスロットをフィルターとして `MockLearnRepository` から対応する問題を開始します。API接続時の問題取得または開始エンドポイントの具体仕様は未確定です。
 - 復習期限件数 `review.due_count` の表示導線は保留中です。
 
 ### カレンダー
@@ -93,7 +93,7 @@ API版へ接続するときは、対象featureの `data/` にAPI Client / Data S
 
 ### 学習
 
-- Repository: `LearnRepository.fetchCatalog()`、`fetchQuestionsForSkillNode()`、`submitAttempt()`
+- Repository: `LearnRepository.fetchCatalog()`、`fetchQuestionsForSkillNode()`、`fetchQuestionsForTask()`、`submitAttempt()`
 - モック: `MockLearnRepository`
 - DTO: `LearnSkillsResponseDto`、`LearnQuestionDetailDto`、`LearnAttemptResponseDto` など
 - 接続先:
@@ -101,6 +101,7 @@ API版へ接続するときは、対象featureの `data/` にAPI Client / Data S
   - 問題取得: `GET /v1/questions?skill_node_id=...`、必要に応じて `GET /v1/questions/{id}`
   - 回答送信: `POST /v1/questions/{id}/attempts`
 - 回答時は `selected_keys` と `duration_ms` を送信し、`is_correct`、`correct_keys`、`explanation`、`xp_gained` を `LearnAttemptResult` へ変換します。
+- ホーム開始時は、タスクの設定スロットを `LearnQuestionFilter` へ変換し、問題種別・言語・難易度に一致する問題を取得します。ホームタスクのスワイプ時も表示タスクと同じインデックスの設定を使います。
 - 問題は現在モックに含まれる問題セットを繰り返し出題します。API版では一覧取得、ページング、問題枯渇時の扱いをRepository側で決めます。
 - 読み込み失敗・回答送信失敗の表示枠は実装済みですが、API通信によるエラー変換は未実装です。
 

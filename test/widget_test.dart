@@ -270,10 +270,12 @@ void main() {
     expect(find.text('連続日数'), findsOneWidget);
     expect(find.byIcon(Icons.play_arrow_rounded), findsOneWidget);
     expect(find.text('TS'), findsOneWidget);
+    expect(find.text('今月の勉強量'), findsOneWidget);
     await tester.tap(find.byKey(const ValueKey('home-play-task-0')));
     await tester.pump();
-    expect(find.text('TypeScript 基礎 を開始します。'), findsOneWidget);
-    expect(find.text('今月の勉強量'), findsOneWidget);
+    await tester.pump(const Duration(milliseconds: 500));
+    expect(find.text('推論される型'), findsOneWidget);
+    expect(find.byType(CodeTrainBottomNavigation), findsNothing);
   });
 
   testWidgets('swiping the play area switches the whole study task', (
@@ -312,6 +314,13 @@ void main() {
 
     expect(find.byKey(const ValueKey('home-programs-task-1')), findsOneWidget);
     expect(find.text('TS'), findsNothing);
+
+    await tester.tap(find.byKey(const ValueKey('home-play-task-1')));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+
+    expect(find.text('Ruby の条件分岐'), findsOneWidget);
+    expect(find.byType(CodeTrainBottomNavigation), findsNothing);
   });
 
   testWidgets('friend selection animation can be completed', (

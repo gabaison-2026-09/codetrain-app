@@ -18,6 +18,7 @@ class HomeTabPage extends StatefulWidget {
     required this.taskLauncher,
     this.taskSelectionVersion,
     this.initialDashboard,
+    this.onStartLearning,
   });
 
   final HomeDashboardRepository repository;
@@ -25,6 +26,7 @@ class HomeTabPage extends StatefulWidget {
   final TaskLauncher taskLauncher;
   final ValueListenable<int>? taskSelectionVersion;
   final HomeDashboard? initialDashboard;
+  final ValueChanged<LearningTask?>? onStartLearning;
 
   @override
   State<HomeTabPage> createState() => _HomeTabPageState();
@@ -87,6 +89,8 @@ class _HomeTabPageState extends State<HomeTabPage> {
               dashboard: dashboard,
               taskLauncher: widget.taskLauncher,
               studyTasks: selectedTasks,
+              taskConfigurations: configuredTasks,
+              onStartLearning: widget.onStartLearning,
             );
           },
         );
@@ -121,11 +125,15 @@ class _HomeDashboardView extends StatefulWidget {
     required this.dashboard,
     required this.taskLauncher,
     required this.studyTasks,
+    this.taskConfigurations,
+    this.onStartLearning,
   });
 
   final HomeDashboard dashboard;
   final TaskLauncher taskLauncher;
   final List<HomeStudyTask> studyTasks;
+  final List<LearningTask>? taskConfigurations;
+  final ValueChanged<LearningTask?>? onStartLearning;
 
   @override
   State<_HomeDashboardView> createState() => _HomeDashboardViewState();
@@ -146,6 +154,17 @@ class _HomeDashboardViewState extends State<_HomeDashboardView> {
     }
     final safeIndex = _selectedTaskIndex.clamp(0, tasks.length - 1).toInt();
     return tasks[safeIndex];
+  }
+
+  LearningTask? get _selectedTaskConfiguration {
+    final taskConfigurations = widget.taskConfigurations;
+    if (taskConfigurations == null || taskConfigurations.isEmpty) {
+      return null;
+    }
+    final safeIndex = _selectedTaskIndex
+        .clamp(0, taskConfigurations.length - 1)
+        .toInt();
+    return taskConfigurations[safeIndex];
   }
 
   Color get _selectedTaskColor =>
@@ -191,9 +210,7 @@ class _HomeDashboardViewState extends State<_HomeDashboardView> {
       );
       if (!mounted) return;
       HapticFeedback.mediumImpact();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('${task.name} を開始します。')),
-      );
+      widget.onStartLearning?.call(_selectedTaskConfiguration);
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(

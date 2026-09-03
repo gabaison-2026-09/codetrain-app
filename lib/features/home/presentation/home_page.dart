@@ -13,6 +13,7 @@ import '../../calendar/presentation/calendar_page.dart';
 import '../../learn/presentation/learn_page.dart';
 import '../../learn/domain/learn_content.dart';
 import '../../learn/domain/learn_repository.dart';
+import '../../task/domain/task_configuration.dart';
 import '../../task/presentation/task_page.dart';
 import '../../task/domain/task_launcher.dart';
 import '../../task/domain/task_repository.dart';
@@ -51,6 +52,7 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   late final List<Widget> _pages;
   late final ValueNotifier<int> _taskSelectionVersion;
+  late final ValueNotifier<LearnTaskStartRequest?> _startLearningRequest;
 
   int _selectedIndex = 2;
   var _isLearnQuestionViewVisible = false;
@@ -63,11 +65,15 @@ class _HomePageState extends State<HomePage> {
     _topNavigationRepository = widget.topNavigationRepository;
     _topNavigationStatusFuture = _topNavigationRepository.fetchStatus();
     _taskSelectionVersion = ValueNotifier(0);
+    _startLearningRequest = ValueNotifier(null);
     _pages = [
       CalendarPage(repository: widget.calendarRepository),
       LearnPage(
         repository: widget.learnRepository,
         initialCatalog: widget.initialLearnCatalog,
+        startLearningRequest: _startLearningRequest,
+        onStartLearningRequestConsumed: () =>
+            _startLearningRequest.value = null,
         onQuestionViewChanged: (isVisible) {
           if (_isLearnQuestionViewVisible == isVisible) return;
           setState(() => _isLearnQuestionViewVisible = isVisible);
@@ -79,6 +85,7 @@ class _HomePageState extends State<HomePage> {
         taskLauncher: widget.taskLauncher,
         taskSelectionVersion: _taskSelectionVersion,
         initialDashboard: widget.initialHomeDashboard,
+        onStartLearning: _handleStartLearningFromHome,
       ),
       TaskPage(
         repository: widget.taskRepository,
@@ -92,7 +99,32 @@ class _HomePageState extends State<HomePage> {
   @override
   void dispose() {
     _taskSelectionVersion.dispose();
+    _startLearningRequest.dispose();
     super.dispose();
+  }
+
+  void _handleStartLearningFromHome(LearningTask? task) {
+    if (!mounted) return;
+    setState(() => _selectedIndex = 1);
+    _startLearningRequest.value = LearnTaskStartRequest(
+      filters: task == null
+          ? const []
+          : [
+              for (final slot in task.slots)
+                if (slot.questionType != null)
+                  LearnQuestionFilter(
+                    type: switch (slot.questionType!) {
+                      TaskQuestionType.codeReading =>
+                        LearnQuestionType.codeReading,
+                      TaskQuestionType.outputPrediction =>
+                        LearnQuestionType.outputPrediction,
+                    },
+                    language: slot.language,
+                    difficulty: slot.difficulty,
+                  ),
+            ],
+      isTaskBased: task != null,
+    );
   }
 
   @override
