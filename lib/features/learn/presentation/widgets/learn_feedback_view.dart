@@ -64,7 +64,7 @@ class LearnFeedbackView extends StatelessWidget {
                     Expanded(
                       flex: 2,
                       child: SizedBox(
-                        height: 58,
+                        height: 54,
                         child: OutlinedButton(
                           key: const ValueKey('learn-feedback-list'),
                           onPressed: onBackToList,
@@ -74,14 +74,15 @@ class LearnFeedbackView extends StatelessWidget {
                               color: Color(0xffcfcfd7),
                             ),
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(18),
+                              borderRadius: BorderRadius.circular(14),
                             ),
+                            elevation: 0,
                           ),
                           child: const Text(
                             '一覧へ',
                             style: TextStyle(
                               fontFamily: 'Noto Sans Japanese',
-                              fontSize: 15,
+                              fontSize: 14,
                               fontWeight: FontWeight.w700,
                             ),
                           ),
@@ -92,15 +93,17 @@ class LearnFeedbackView extends StatelessWidget {
                     Expanded(
                       flex: 3,
                       child: SizedBox(
-                        height: 58,
+                        height: 54,
                         child: FilledButton(
                           key: const ValueKey('learn-feedback-continue'),
                           onPressed: onContinue,
                           style: FilledButton.styleFrom(
-                            backgroundColor: const Color(0xff111116),
+                            backgroundColor: const Color(0xff6263d9),
+                            foregroundColor: Colors.white,
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(18),
+                              borderRadius: BorderRadius.circular(14),
                             ),
+                            elevation: 0,
                           ),
                           child: const Row(
                             mainAxisAlignment: MainAxisAlignment.center,
@@ -109,12 +112,12 @@ class LearnFeedbackView extends StatelessWidget {
                                 '学習を続ける',
                                 style: TextStyle(
                                   fontFamily: 'Noto Sans Japanese',
-                                  fontSize: 16,
+                                  fontSize: 15,
                                   fontWeight: FontWeight.w700,
                                 ),
                               ),
-                              SizedBox(width: 9),
-                              Icon(Icons.arrow_forward_rounded, size: 22),
+                              SizedBox(width: 10),
+                              Icon(Icons.arrow_forward_rounded, size: 20),
                             ],
                           ),
                         ),
