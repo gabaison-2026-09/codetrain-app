@@ -309,14 +309,26 @@ void main() {
       findsOneWidget,
     );
     expect(find.text('1 / 3'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('calendar-selected-day-progress')),
+      findsOneWidget,
+    );
     expect(find.text('TypeScript 基礎'), findsOneWidget);
-    expect(find.text('1 / 3問'), findsOneWidget);
+    expect(find.text('1 / 3問'), findsNothing);
     expect(find.textContaining('コード読解・TypeScript・Lv.1'), findsOneWidget);
     expect(
       find.byKey(
         const ValueKey('calendar-task-content-task-typescript-basics-0'),
       ),
       findsOneWidget,
+    );
+
+    await tester.tap(find.byKey(const ValueKey('calendar-day-18')));
+    await tester.pump();
+    expect(find.byIcon(Icons.check_circle_rounded), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('calendar-selected-day-progress')),
+      findsNothing,
     );
 
     await tester.tap(find.byKey(const ValueKey('calendar-next-month')));

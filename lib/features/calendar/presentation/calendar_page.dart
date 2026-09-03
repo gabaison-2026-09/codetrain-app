@@ -299,13 +299,7 @@ class _SelectedDayDetails extends StatelessWidget {
                 ),
               ),
               const Spacer(),
-              Icon(
-                activity?.completed == true
-                    ? Icons.check_circle_rounded
-                    : Icons.radio_button_unchecked_rounded,
-                color: activity?.studied == true ? _purple : _muted,
-                size: 19,
-              ),
+              _SelectedDayProgress(activity: activity),
               const SizedBox(width: 8),
               Text(
                 '${activity?.completedSlots ?? 0} / ${activity?.totalSlots ?? 0}',
@@ -339,6 +333,52 @@ class _SelectedDayDetails extends StatelessWidget {
   }
 }
 
+class _SelectedDayProgress extends StatelessWidget {
+  const _SelectedDayProgress({required this.activity});
+
+  final CalendarDayActivity? activity;
+
+  static const _purple = Color(0xff6263d9);
+  static const _lightPurple = Color(0xffe5e5fb);
+  static const _muted = Color(0xff91919b);
+
+  @override
+  Widget build(BuildContext context) {
+    final totalSlots = activity?.totalSlots ?? 0;
+    final completedSlots = activity?.completedSlots ?? 0;
+    final isCompleted = activity?.completed == true ||
+        (totalSlots > 0 && completedSlots >= totalSlots);
+
+    if (isCompleted) {
+      return const Icon(
+        Icons.check_circle_rounded,
+        color: _purple,
+        size: 19,
+      );
+    }
+    if (totalSlots <= 0) {
+      return const Icon(
+        Icons.radio_button_unchecked_rounded,
+        color: _muted,
+        size: 19,
+      );
+    }
+
+    final progress = (completedSlots / totalSlots).clamp(0.0, 1.0).toDouble();
+    return SizedBox(
+      key: const ValueKey('calendar-selected-day-progress'),
+      width: 19,
+      height: 19,
+      child: CircularProgressIndicator(
+        value: progress,
+        backgroundColor: _lightPurple,
+        valueColor: const AlwaysStoppedAnimation<Color>(_purple),
+        strokeWidth: 3,
+      ),
+    );
+  }
+}
+
 class _CalendarTaskDetails extends StatelessWidget {
   const _CalendarTaskDetails({required this.task});
 
@@ -346,7 +386,6 @@ class _CalendarTaskDetails extends StatelessWidget {
 
   static const _ink = Color(0xff222229);
   static const _purple = Color(0xff6263d9);
-  static const _muted = Color(0xff777782);
   static const _line = Color(0xffe3e3e9);
 
   @override
@@ -370,21 +409,6 @@ class _CalendarTaskDetails extends StatelessWidget {
                     fontFamily: 'Noto Sans Japanese',
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
-                decoration: BoxDecoration(
-                  color: const Color(0xffeeeefe),
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: Text(
-                  '${task.completedQuestions} / ${task.totalQuestions}問',
-                  style: const TextStyle(
-                    color: _purple,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
                   ),
                 ),
               ),
