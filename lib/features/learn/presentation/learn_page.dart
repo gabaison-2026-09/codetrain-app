@@ -224,9 +224,9 @@ class _LearnPageState extends State<LearnPage> {
         );
         final showsQuestion = _questions != null && !_isShowingFeedback;
         final contentPadding = EdgeInsets.fromLTRB(
-          20,
-          64 + mediaPadding.top + 22,
-          20,
+          22,
+          64 + mediaPadding.top + 24,
+          22,
           showsQuestion
               ? mediaPadding.bottom + 18
               : 325 * bottomNavigationScale + mediaPadding.bottom + 18,
