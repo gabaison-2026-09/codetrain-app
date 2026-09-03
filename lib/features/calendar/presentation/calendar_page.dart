@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../domain/calendar_activity.dart';
 import '../domain/calendar_repository.dart';
@@ -51,6 +52,11 @@ class _CalendarPageState extends State<CalendarPage> {
     });
   }
 
+  void _selectDate(DateTime date) {
+    HapticFeedback.selectionClick();
+    setState(() => _selectedDate = date);
+  }
+
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
@@ -97,9 +103,7 @@ class _CalendarPageState extends State<CalendarPage> {
                     onPreviousMonth: () => _moveMonth(-1),
                     onNextMonth: () => _moveMonth(1),
                     onToday: _showCurrentMonth,
-                    onDateSelected: (date) => setState(
-                      () => _selectedDate = date,
-                    ),
+                    onDateSelected: _selectDate,
                   );
                 },
               ),
