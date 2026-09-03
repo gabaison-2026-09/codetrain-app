@@ -1,97 +1,66 @@
 import 'package:flutter/material.dart';
 
 import '../domain/auth_repository.dart';
-import 'create_account_page.dart';
 
-enum _SignInMethod { email, google }
-
-class LoginPage extends StatefulWidget {
-  const LoginPage({
+class CreateAccountPage extends StatefulWidget {
+  const CreateAccountPage({
     super.key,
     required this.repository,
-    required this.onSignedIn,
+    required this.onCreated,
   });
 
   final AuthRepository repository;
-  final ValueChanged<AuthSession> onSignedIn;
+  final ValueChanged<AuthSession> onCreated;
 
   @override
-  State<LoginPage> createState() => _LoginPageState();
+  State<CreateAccountPage> createState() => _CreateAccountPageState();
 }
 
-class _LoginPageState extends State<LoginPage> {
+class _CreateAccountPageState extends State<CreateAccountPage> {
   static const _purple = Color(0xff6263d9);
   static const _fieldBorder = Color(0xffd7d7df);
 
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _passwordConfirmationController = TextEditingController();
 
   var _isPasswordVisible = false;
-  _SignInMethod? _submittingMethod;
+  var _isSubmitting = false;
   String? _errorMessage;
-
-  bool get _isSubmitting => _submittingMethod != null;
 
   @override
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
+    _passwordConfirmationController.dispose();
     super.dispose();
   }
 
-  Future<void> _handleEmailSignIn() async {
-    FocusScope.of(context).unfocus();
-    if (!(_formKey.currentState?.validate() ?? false)) return;
-    await _signIn(
-      _SignInMethod.email,
-      () => widget.repository.signInWithEmail(
-        email: _emailController.text.trim(),
-        password: _passwordController.text,
-      ),
-    );
-  }
-
-  Future<void> _handleGoogleSignIn() async {
-    FocusScope.of(context).unfocus();
-    await _signIn(_SignInMethod.google, widget.repository.signInWithGoogle);
-  }
-
   Future<void> _handleCreateAccount() async {
-    await Navigator.of(context).push<void>(
-      MaterialPageRoute(
-        builder: (context) => CreateAccountPage(
-          repository: widget.repository,
-          onCreated: (session) {
-            Navigator.of(context).pop();
-            widget.onSignedIn(session);
-          },
-        ),
-      ),
-    );
-  }
-
-  Future<void> _signIn(
-    _SignInMethod method,
-    Future<AuthSession> Function() request,
-  ) async {
-    if (_isSubmitting) return;
+    FocusScope.of(context).unfocus();
+    if (_isSubmitting || !(_formKey.currentState?.validate() ?? false)) {
+      return;
+    }
     setState(() {
-      _submittingMethod = method;
+      _isSubmitting = true;
       _errorMessage = null;
     });
     try {
-      final session = await request();
+      final session = await widget.repository.createAccountWithEmail(
+        email: _emailController.text.trim(),
+        password: _passwordController.text,
+      );
       if (!mounted) return;
-      widget.onSignedIn(session);
+      widget.onCreated(session);
     } on AuthFailure {
       if (!mounted) return;
-      setState(() => _errorMessage = 'ログインできませんでした');
+      setState(() => _errorMessage = 'アカウントを作成できませんでした');
     } catch (_) {
       if (!mounted) return;
-      setState(() => _errorMessage = 'ログインできませんでした');
+      setState(() => _errorMessage = 'アカウントを作成できませんでした');
     } finally {
-      if (mounted) setState(() => _submittingMethod = null);
+      if (mounted) setState(() => _isSubmitting = false);
     }
   }
 
@@ -100,14 +69,31 @@ class _LoginPageState extends State<LoginPage> {
     final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
     return Scaffold(
       backgroundColor: Colors.white,
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        foregroundColor: const Color(0xff222229),
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
+        title: const Text(
+          'アカウント作成',
+          style: TextStyle(
+            fontFamily: 'Noto Sans Japanese',
+            fontSize: 18,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ),
       body: SafeArea(
+        top: false,
         child: LayoutBuilder(
           builder: (context, constraints) {
             return SingleChildScrollView(
-              padding: EdgeInsets.fromLTRB(28, 24, 28, 24 + bottomInset),
+              padding: EdgeInsets.fromLTRB(28, 20, 28, 24 + bottomInset),
               child: ConstrainedBox(
                 constraints: BoxConstraints(
-                  minHeight: constraints.maxHeight - 48,
+                  minHeight: constraints.maxHeight > 44
+                      ? constraints.maxHeight - 44
+                      : 0,
                 ),
                 child: Center(
                   child: SizedBox(
@@ -118,15 +104,34 @@ class _LoginPageState extends State<LoginPage> {
                         mainAxisSize: MainAxisSize.min,
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          const _CodeTrainMark(color: _purple),
-                          const SizedBox(height: 52),
+                          const Text(
+                            'CodeTrainをはじめよう',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: Color(0xff222229),
+                              fontFamily: 'Russo One',
+                              fontSize: 26,
+                              letterSpacing: 1,
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          const Text(
+                            'メールアドレスとパスワードを入力してください',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: Color(0xff707078),
+                              fontFamily: 'Noto Sans Japanese',
+                              fontSize: 14,
+                            ),
+                          ),
+                          const SizedBox(height: 36),
                           TextFormField(
-                            key: const ValueKey('login-email-field'),
+                            key: const ValueKey('create-account-email-field'),
                             controller: _emailController,
                             enabled: !_isSubmitting,
                             keyboardType: TextInputType.emailAddress,
                             textInputAction: TextInputAction.next,
-                            autofillHints: const [AutofillHints.email],
+                            autofillHints: const [AutofillHints.newUsername],
                             decoration: _inputDecoration(
                               label: 'メールアドレス',
                             ),
@@ -142,18 +147,19 @@ class _LoginPageState extends State<LoginPage> {
                           ),
                           const SizedBox(height: 18),
                           TextFormField(
-                            key: const ValueKey('login-password-field'),
+                            key: const ValueKey(
+                              'create-account-password-field',
+                            ),
                             controller: _passwordController,
                             enabled: !_isSubmitting,
                             obscureText: !_isPasswordVisible,
-                            textInputAction: TextInputAction.done,
-                            autofillHints: const [AutofillHints.password],
-                            onFieldSubmitted: (_) => _handleEmailSignIn(),
+                            textInputAction: TextInputAction.next,
+                            autofillHints: const [AutofillHints.newPassword],
                             decoration: _inputDecoration(
                               label: 'パスワード',
                               suffixIcon: IconButton(
                                 key: const ValueKey(
-                                  'login-password-visibility',
+                                  'create-account-password-visibility',
                                 ),
                                 onPressed: () => setState(
                                   () => _isPasswordVisible =
@@ -174,6 +180,27 @@ class _LoginPageState extends State<LoginPage> {
                               return null;
                             },
                           ),
+                          const SizedBox(height: 18),
+                          TextFormField(
+                            key: const ValueKey(
+                              'create-account-password-confirmation-field',
+                            ),
+                            controller: _passwordConfirmationController,
+                            enabled: !_isSubmitting,
+                            obscureText: !_isPasswordVisible,
+                            textInputAction: TextInputAction.done,
+                            autofillHints: const [AutofillHints.newPassword],
+                            onFieldSubmitted: (_) => _handleCreateAccount(),
+                            decoration: _inputDecoration(
+                              label: 'パスワード（確認）',
+                            ),
+                            validator: (value) {
+                              if (value != _passwordController.text) {
+                                return 'パスワードが一致しません';
+                              }
+                              return null;
+                            },
+                          ),
                           if (_errorMessage != null) ...[
                             const SizedBox(height: 12),
                             Text(
@@ -190,9 +217,11 @@ class _LoginPageState extends State<LoginPage> {
                           SizedBox(
                             height: 54,
                             child: FilledButton(
-                              key: const ValueKey('login-submit-button'),
+                              key: const ValueKey(
+                                'create-account-submit-button',
+                              ),
                               onPressed:
-                                  _isSubmitting ? null : _handleEmailSignIn,
+                                  _isSubmitting ? null : _handleCreateAccount,
                               style: FilledButton.styleFrom(
                                 backgroundColor: _purple,
                                 disabledBackgroundColor: const Color(
@@ -203,7 +232,7 @@ class _LoginPageState extends State<LoginPage> {
                                 ),
                                 elevation: 0,
                               ),
-                              child: _submittingMethod == _SignInMethod.email
+                              child: _isSubmitting
                                   ? const SizedBox.square(
                                       dimension: 22,
                                       child: CircularProgressIndicator(
@@ -212,7 +241,7 @@ class _LoginPageState extends State<LoginPage> {
                                       ),
                                     )
                                   : const Text(
-                                      'ログイン',
+                                      'アカウントを作成',
                                       style: TextStyle(
                                         fontFamily: 'Noto Sans Japanese',
                                         fontSize: 16,
@@ -221,52 +250,19 @@ class _LoginPageState extends State<LoginPage> {
                                     ),
                             ),
                           ),
-                          const SizedBox(height: 14),
-                          SizedBox(
-                            height: 54,
-                            child: OutlinedButton.icon(
-                              key: const ValueKey('login-google-button'),
-                              onPressed:
-                                  _isSubmitting ? null : _handleGoogleSignIn,
-                              style: OutlinedButton.styleFrom(
-                                foregroundColor: const Color(0xff26262d),
-                                side: const BorderSide(color: _fieldBorder),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(14),
-                                ),
-                              ),
-                              icon:
-                                  _submittingMethod == _SignInMethod.google
-                                      ? const SizedBox.square(
-                                          dimension: 22,
-                                          child: CircularProgressIndicator(
-                                            strokeWidth: 2,
-                                            color: _purple,
-                                          ),
-                                        )
-                                      : const _GoogleMark(),
-                              label: const Text(
-                                'Googleでログイン',
-                                style: TextStyle(
-                                  fontFamily: 'Noto Sans Japanese',
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 18),
+                          const SizedBox(height: 12),
                           TextButton(
                             key: const ValueKey(
-                              'login-create-account-button',
+                              'create-account-back-to-login-button',
                             ),
-                            onPressed:
-                                _isSubmitting ? null : _handleCreateAccount,
+                            onPressed: _isSubmitting
+                                ? null
+                                : () => Navigator.of(context).maybePop(),
                             style: TextButton.styleFrom(
                               foregroundColor: _purple,
                             ),
                             child: const Text(
-                              'アカウントを新規作成',
+                              'ログイン画面に戻る',
                               style: TextStyle(
                                 fontFamily: 'Noto Sans Japanese',
                                 fontSize: 14,
@@ -316,62 +312,6 @@ class _LoginPageState extends State<LoginPage> {
       focusedErrorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
         borderSide: const BorderSide(color: Color(0xffb3261e), width: 1.6),
-      ),
-    );
-  }
-}
-
-class _CodeTrainMark extends StatelessWidget {
-  const _CodeTrainMark({required this.color});
-
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        SizedBox.square(
-          dimension: 72,
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(color: color, width: 3),
-            ),
-            child: Icon(Icons.play_arrow_rounded, color: color, size: 54),
-          ),
-        ),
-        const SizedBox(height: 18),
-        const Text(
-          'CodeTrain',
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            color: Color(0xff222229),
-            fontFamily: 'Russo One',
-            fontSize: 32,
-            letterSpacing: 1.5,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _GoogleMark extends StatelessWidget {
-  const _GoogleMark();
-
-  @override
-  Widget build(BuildContext context) {
-    return const SizedBox.square(
-      dimension: 24,
-      child: Center(
-        child: Text(
-          'G',
-          style: TextStyle(
-            color: Color(0xff6263d9),
-            fontSize: 18,
-            fontWeight: FontWeight.w800,
-          ),
-        ),
       ),
     );
   }

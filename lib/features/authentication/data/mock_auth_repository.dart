@@ -24,4 +24,18 @@ class MockAuthRepository implements AuthRepository {
       idToken: 'mock-firebase-id-token',
     );
   }
+
+  @override
+  Future<AuthSession> createAccountWithEmail({
+    required String email,
+    required String password,
+  }) async {
+    if (email.trim().isEmpty || password.isEmpty) {
+      throw const AuthFailure();
+    }
+    return const AuthSession(
+      userId: 'mock-created-user',
+      idToken: 'mock-firebase-id-token',
+    );
+  }
 }

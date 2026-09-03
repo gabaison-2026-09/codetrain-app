@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:codetrain_app/app/app.dart';
 import 'package:codetrain_app/features/authentication/domain/auth_repository.dart';
+import 'package:codetrain_app/features/authentication/presentation/create_account_page.dart';
 import 'package:codetrain_app/features/calendar/data/calendar_response_dto.dart';
 import 'package:codetrain_app/features/calendar/data/mock_calendar_repository.dart';
 import 'package:codetrain_app/features/calendar/presentation/calendar_page.dart';
@@ -89,6 +90,81 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(CodeTrainTopNavigation), findsOneWidget);
+  });
+
+  testWidgets('account creation opens separately and returns to login', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(const CodeTrainApp());
+
+    await tester.tap(
+      find.byKey(const ValueKey('login-create-account-button')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byType(CreateAccountPage), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('create-account-email-field')),
+      findsOneWidget,
+    );
+
+    await tester.tap(
+      find.byKey(const ValueKey('create-account-back-to-login-button')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byType(CreateAccountPage), findsNothing);
+    expect(
+      find.byKey(const ValueKey('login-submit-button')),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('account creation validates input and opens home', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(const CodeTrainApp());
+    await tester.tap(
+      find.byKey(const ValueKey('login-create-account-button')),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.enterText(
+      find.byKey(const ValueKey('create-account-email-field')),
+      'new-user@example.com',
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey('create-account-password-field')),
+      'password',
+    );
+    await tester.enterText(
+      find.byKey(
+        const ValueKey('create-account-password-confirmation-field'),
+      ),
+      'different-password',
+    );
+    final submitButton = find.byKey(
+      const ValueKey('create-account-submit-button'),
+    );
+    await tester.ensureVisible(submitButton);
+    await tester.tap(submitButton);
+    await tester.pump();
+
+    expect(find.text('パスワードが一致しません'), findsOneWidget);
+
+    await tester.enterText(
+      find.byKey(
+        const ValueKey('create-account-password-confirmation-field'),
+      ),
+      'password',
+    );
+    await tester.ensureVisible(submitButton);
+    await tester.tap(submitButton);
+    await tester.pumpAndSettle();
+
+    expect(find.byType(CreateAccountPage), findsNothing);
+    expect(find.byType(CodeTrainTopNavigation), findsOneWidget);
+    expect(find.byType(CodeTrainBottomNavigation), findsOneWidget);
   });
 
   test('GET /v1/me progress DTO maps to the display model', () {
@@ -841,4 +917,12 @@ class _PendingGoogleAuthRepository implements AuthRepository {
 
   @override
   Future<AuthSession> signInWithGoogle() => _googleSignInCompleter.future;
+
+  @override
+  Future<AuthSession> createAccountWithEmail({
+    required String email,
+    required String password,
+  }) {
+    throw UnimplementedError();
+  }
 }

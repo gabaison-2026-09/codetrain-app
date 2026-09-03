@@ -12,6 +12,11 @@ abstract interface class AuthRepository {
   });
 
   Future<AuthSession> signInWithGoogle();
+
+  Future<AuthSession> createAccountWithEmail({
+    required String email,
+    required String password,
+  });
 }
 
 class AuthFailure implements Exception {
