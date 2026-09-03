@@ -31,3 +31,4 @@
 ## 実装状況
 
 `CodeTrainTopNavigation` として実装済み。`HomePage` の全タブ共通レイアウト上部に表示している。
+`ApiTopNavigationRepository` は実装済み。APIに `experience_progress` と `max_hearts` が追加されるまでは、変換境界の暫定値を使用する。Composition Rootでの切替は未対応。

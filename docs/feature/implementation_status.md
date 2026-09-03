@@ -48,17 +48,17 @@ Repository interface
 data/MockRepository ── DTO.fromJson() → domain model
 ```
 
-API版へ接続するときは、対象featureの `data/` にAPI Client / Data Source / DTO変換を配置し、同じRepository interfaceを実装します。画面WidgetにJSONのkey、HTTPステータス、通信処理を追加しない方針です。
+API Client / Data Source / DTO変換と、同じRepository interfaceを満たすAPI版実装は `data/` に追加済みです。現在はComposition RootでMock版を注入しており、Issue 3でAPI版へ切り替えます。画面WidgetにJSONのkey、HTTPステータス、通信処理を追加しない方針です。
 
 ### 差し替え手順
 
-1. `docs/API_DESIGN.md` に合わせたAPI Client / Data Sourceを対象featureの `data/` に追加する。
-2. APIレスポンスをDTOで受け、DTOから既存のdomain modelへ変換する。
-3. `TopNavigationRepository`、`HomeDashboardRepository`、`CalendarRepository`、`LearnRepository`、`TaskRepository`、`FriendRepository` のAPI版実装を作成する。
-4. タスク開始用に `TaskLauncher` のAPI版実装を作成する。開始APIの具体仕様は現在未確定です。
-5. `lib/app/app.dart` でモック実装をAPI版へ差し替える。
-6. Firebase Authentication版の `AuthRepository` が返すIDトークンをAPI Clientへ渡す。
-7. 認証、共通エラー、タイムアウトなどはAPI Client / Data Source側で統一して扱い、画面へはRepositoryの結果またはドメイン用エラーとして渡す。
+1. 実装済み: `docs/API_DESIGN.md` に合わせたAPI Client / Data Sourceを対象featureの `data/` に追加する。
+2. 実装済み: APIレスポンスをDTOで受け、DTOから既存のdomain modelへ変換する。
+3. 実装済み: `TopNavigationRepository`、`HomeDashboardRepository`、`CalendarRepository`、`LearnRepository`、`TaskRepository`、`FriendRepository` のAPI版実装を作成する。
+4. 未対応: タスク開始用に `TaskLauncher` のAPI版実装を作成する。開始APIの具体仕様は現在未確定です。
+5. Issue 3: `lib/app/app.dart` でモック実装をAPI版へ差し替える。
+6. 認証方式確定後: Firebase Authentication版の `AuthRepository` が返すIDトークンをAPI Clientへ渡す。
+7. 実装済み: 認証ヘッダー、共通エラー、タイムアウトをAPI Client / Data Source側で統一して扱う。
 
 ## 機能別の接続詳細
 
@@ -79,7 +79,7 @@ API版へ接続するときは、対象featureの `data/` にAPI Client / Data S
 - 接続先: `GET /v1/me`
 - APIレスポンスの `progress.xp`、`progress.level`、`progress.hearts` を `TopNavigationStatus` へ変換します。
 - 現在のAPI設計レスポンスには `experience_progress` と `max_hearts` がないため、進捗率とハート上限の取得方法は未確定です。現状はモックで `0.62` と `5` を与えています。
-- `GET /v1/me` が `USER_NOT_FOUND` を返した場合の初回作成フロー（`POST /v1/me`）も、アプリ側には未実装です。
+- `HomeRemoteDataSource.provisionMe()` は実装済みです。`GET /v1/me` の `USER_NOT_FOUND` を受けて呼び出す画面フローとComposition Root接続は未対応です。
 
 ### ホームダッシュボード
 
@@ -87,7 +87,7 @@ API版へ接続するときは、対象featureの `data/` にAPI Client / Data S
 - モック: `MockHomeDashboardRepository`
 - ドメインモデル: `HomeDashboard`、`HomeStudyTask`、`HomeTaskProgress`、`HomeMonthlyProgress`
 - 接続先: `GET /v1/home`、連続学習日数は `GET /v1/me` の `progress.streak_days`
-- `GET /v1/home` の `activity_date`、`tasks`、`monthly_progress`、`study_tasks` を表示用モデルへ変換するAPI版DTOが必要です。
+- `ApiHomeDashboardRepository` が `GET /v1/home` の `activity_date`、`tasks`、`monthly_progress`、`study_tasks` を表示用モデルへ変換します。基本契約に月間進捗がない場合は変換境界の暫定値を使用します。
 - `TaskLauncher.start()` は現在何もしないモックです。ホームの再生ボタンは開始通知後に Learn タブへ切り替え、ホームに割り当てられたタスクのスロットをフィルターとして `MockLearnRepository` から対応する問題を開始します。API接続時の問題取得または開始エンドポイントの具体仕様は未確定です。
 - 復習期限件数 `review.due_count` の表示導線は保留中です。
 
@@ -99,7 +99,7 @@ API版へ接続するときは、対象featureの `data/` にAPI Client / Data S
 - 接続先: `GET /v1/calendar?from=...&to=...`
 - APIの `days` を月表示へ変換し、`completed_slots > 0` の日を学習日として淡い紫で表示します。選択後は `tasks` からタスク名、設定内容、問題数、進捗を表示します。
 - `streak_days` と `last_studied_on` はドメインモデルへ保持しますが、現在のカレンダー画面には表示しません。
-- 読み込み失敗時の再試行導線は実装済みです。API通信によるエラー変換は未実装です。
+- 読み込み失敗時の再試行導線と、`ApiCalendarRepository` によるAPIエラー変換を実装済みです。
 
 ### 学習
 
@@ -113,7 +113,7 @@ API版へ接続するときは、対象featureの `data/` にAPI Client / Data S
 - 回答時は `selected_keys` と `duration_ms` を送信し、`is_correct`、`correct_keys`、`explanation`、`xp_gained` を `LearnAttemptResult` へ変換します。
 - ホーム開始時は、タスクの設定スロットを `LearnQuestionFilter` へ変換し、問題種別・言語・難易度に一致する問題を取得します。ホームタスクのスワイプ時も表示タスクと同じインデックスの設定を使います。
 - 問題は現在モックに含まれる問題セットを繰り返し出題します。API版では一覧取得、ページング、問題枯渇時の扱いをRepository側で決めます。
-- 読み込み失敗・回答送信失敗の表示枠は実装済みですが、API通信によるエラー変換は未実装です。
+- 読み込み失敗・回答送信失敗の表示枠と、`ApiLearnRepository` によるAPIエラー変換を実装済みです。
 
 ### タスク管理
 
@@ -148,10 +148,10 @@ API版へ接続するときは、対象featureの `data/` にAPI Client / Data S
 
 | API | 用途 | 現在の状態 |
 | --- | --- | --- |
-| `POST /v1/me` | 初回ログイン時のユーザー作成 | アプリ側未実装 |
+| `POST /v1/me` | 初回ログイン時のユーザー作成 | data層の通信・DTO変換は実装済み。画面フローは未対応 |
 | `PATCH /v1/me` | 表示名・アイコン更新 | 現在は画面導線なし |
 | `GET /v1/me/stats` | 種別×言語ごとの正答率 | 現在は画面導線なし |
-| `GET /v1/srs/due` | 復習期限問題の取得 | 復習画面・導線未実装 |
+| `GET /v1/srs/due` | 復習期限問題の取得 | data層の通信・DTO変換は実装済み。復習画面・導線は未対応 |
 | `/v1/admin/*` | 問題レビュー用API | `codetrain-app` の対象外。`codetrain-admin` 向け |
 
 ## API接続前に確認が必要な事項

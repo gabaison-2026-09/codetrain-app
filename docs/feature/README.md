@@ -16,6 +16,7 @@
 | 学習画面 | [`learning.md`](learning.md) | 言語アイコンと難易度範囲スライダーから学習カテゴリー・学習項目を選び、タスク設定に対応した問題を含む四択問題へ継続的に回答し、正誤・解説に加えて5問ごとの正解数・獲得XPを確認しながら学習する。 | `lib/features/learn/presentation/`、`lib/shared/widgets/programming_language_icon.dart`、`lib/shared/widgets/programming_language_selector.dart`、`lib/features/learn/data/`、`lib/features/learn/domain/` |
 | タスク管理 | [`task_management.md`](task_management.md) | 5スロットを持つ複数の学習タスクを一覧表示し、タスクの開始、ホーム開始対象の最大3件選択、学習画面と共通の言語ロゴUIによる作成・編集・削除を行う。 | `lib/features/task/presentation/`、`lib/features/task/data/`、`lib/features/task/domain/`、`lib/shared/widgets/programming_language_selector.dart` |
 | フレンド | [`friends.md`](friends.md) | 公開用ユーザーIDの完全一致検索、関係別の絞り込み、連続学習日数の表示、申請送信・取消、受信申請の承認・拒否、フレンド解除を行う。 | `lib/features/friend/presentation/`、`lib/features/friend/data/`、`lib/features/friend/domain/` |
+| API Repository | [`api_repositories.md`](api_repositories.md) | admin/Auth系を除く配信APIのHTTP通信、DTO変換、エラー変換、およびMockClientテストを管理する。 | `lib/core/network/`、`lib/features/*/data/`、`test/` |
 
 ## 更新ルール
 

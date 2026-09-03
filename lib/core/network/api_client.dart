@@ -17,8 +17,7 @@ import 'paginated_response.dart';
 /// - エラーエンベロープの [ApiException] へのマッピング
 /// - カーソルページング（`cursor` / `limit` / `next_cursor`）の下地
 ///
-/// 個別エンドポイントの疎通処理は各 feature の Repository 側で本クラスを
-/// 使って実装する（Issue 2 以降）。
+/// 個別エンドポイントの通信処理は各 feature の data 層で本クラスを使う。
 class ApiClient {
   // 名前付きパラメータはアンダースコア始まりにできず initializing formal を
   // 使えないため、prefer_initializing_formals はここでは適用できない。
@@ -64,6 +63,10 @@ class ApiClient {
 
   Future<dynamic> patch(String path, {Object? body}) {
     return _send('PATCH', path, body: body);
+  }
+
+  Future<dynamic> put(String path, {Object? body}) {
+    return _send('PUT', path, body: body);
   }
 
   Future<dynamic> delete(String path, {Object? body}) {
@@ -139,11 +142,14 @@ class ApiClient {
   Uri _resolveUri(String path, Map<String, dynamic>? query) {
     final normalizedPath = path.startsWith('/') ? path : '$_apiPrefix/$path';
     final base = _config.apiBaseUrl;
-    final queryParameters = <String, String>{
+    final queryParameters = <String, dynamic>{
       ...base.queryParameters,
       if (query != null)
         for (final entry in query.entries)
-          if (entry.value != null) entry.key: '${entry.value}',
+          if (entry.value != null)
+            entry.key: entry.value is Iterable
+                ? (entry.value as Iterable).map((value) => '$value').toList()
+                : '${entry.value}',
     };
     return base.replace(
       path: '${base.path}$normalizedPath',

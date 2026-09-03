@@ -69,6 +69,23 @@ void main() {
     expect(url.queryParameters, {'limit': '20'});
   });
 
+  test('PUTと複数値クエリを送信できる', () async {
+    late http.Request captured;
+    final client = _client(_config(), (request) async {
+      captured = request;
+      return http.Response('{}', 200);
+    });
+
+    await client.put('task-slots/1', body: {'difficulty': 2});
+    expect(captured.method, 'PUT');
+    expect(jsonDecode(captured.body), {'difficulty': 2});
+
+    await client.get('questions', query: {
+      'tag': ['array', 'es2020'],
+    });
+    expect(captured.url.queryParametersAll['tag'], ['array', 'es2020']);
+  });
+
   test('ベースURL切替がリクエストURLに反映される', () async {
     late Uri url;
     final client = _client(_config('https://staging.example.com/base'), (

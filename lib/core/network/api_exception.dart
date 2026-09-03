@@ -66,6 +66,10 @@ class ApiException implements Exception {
   /// クライアント都合の通信エラー（API設計外の独自コード）。
   static const String codeNetworkError = 'NETWORK_ERROR';
 
+  /// 2xxレスポンスが設計されたJSON形式と一致しない場合の
+  /// クライアント独自コード。
+  static const String codeInvalidResponse = 'INVALID_RESPONSE';
+
   bool get isNetworkError => code == codeNetworkError;
   bool get isUnauthorized => statusCode == 401;
 

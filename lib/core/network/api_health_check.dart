@@ -1,11 +1,10 @@
 import 'api_client.dart';
 
-/// 共通APIクライアント経由でダミーのGETリクエストを送るための疎通確認用ヘルパ。
+/// 共通APIクライアント経由でGETリクエストを送る疎通確認用ヘルパ。
 ///
 /// `docs/API_DESIGN.md` §1 の `GET /healthz`（`/v1` を付けない）を叩く。
-/// Issue 30 の完了条件「共通APIクライアント経由でダミーのGETリクエストが
-/// 送信できる」を満たすための最小実装で、個別エンドポイントの Repository は
-/// Issue 2 以降で追加する。
+/// Composition RootでのRepository切替前にも、base URLと共通HTTP処理だけを
+/// 独立して確認できる。
 class ApiHealthCheck {
   const ApiHealthCheck(this._client);
 

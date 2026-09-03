@@ -1,5 +1,33 @@
 import '../domain/task_configuration.dart';
 
+class TaskSlotsResponseDto {
+  const TaskSlotsResponseDto({required this.slots});
+
+  factory TaskSlotsResponseDto.fromJson(Map<String, Object?> json) =>
+      TaskSlotsResponseDto(
+        slots: (json['slots'] as List<Object?>? ?? const [])
+            .cast<Map<String, Object?>>()
+            .map(TaskSlotDto.fromJson)
+            .toList(growable: false),
+      );
+
+  final List<TaskSlotDto> slots;
+}
+
+class TaskOptionsResponseDto {
+  const TaskOptionsResponseDto({required this.options});
+
+  factory TaskOptionsResponseDto.fromJson(Map<String, Object?> json) =>
+      TaskOptionsResponseDto(
+        options: (json['options'] as List<Object?>? ?? const [])
+            .cast<Map<String, Object?>>()
+            .map(TaskOptionDto.fromJson)
+            .toList(growable: false),
+      );
+
+  final List<TaskOptionDto> options;
+}
+
 class TaskSlotDto {
   const TaskSlotDto({
     required this.slotNo,
@@ -36,6 +64,23 @@ class TaskSlotDto {
         language: language,
         minimumDifficulty: minimumDifficulty,
         maximumDifficulty: maximumDifficulty,
+      );
+
+  Map<String, Object?> toRequestJson() => {
+        'question_type': _questionTypeToApiValue(
+          _questionTypeFromApiValue(questionType!),
+        ),
+        'language': language,
+        'difficulty': difficulty,
+      };
+
+  factory TaskSlotDto.fromDomain(TaskSlot slot) => TaskSlotDto(
+        slotNo: slot.slotNo,
+        questionType: slot.questionType == null
+            ? null
+            : _questionTypeToApiValue(slot.questionType!),
+        language: slot.language,
+        difficulty: slot.difficulty,
       );
 }
 
@@ -105,3 +150,8 @@ TaskQuestionType _questionTypeFromApiValue(String value) {
     _ => throw FormatException('Unsupported question_type: $value'),
   };
 }
+
+String _questionTypeToApiValue(TaskQuestionType value) => switch (value) {
+      TaskQuestionType.codeReading => 'code_reading',
+      TaskQuestionType.outputPrediction => 'output_prediction',
+    };

@@ -1,5 +1,53 @@
 import '../domain/learn_content.dart';
 
+class LearnQuestionSummaryDto {
+  const LearnQuestionSummaryDto({
+    required this.id,
+    required this.type,
+    required this.difficulty,
+    required this.title,
+    required this.codeLanguage,
+    required this.tags,
+    required this.skillNodeId,
+    this.answered,
+  });
+
+  factory LearnQuestionSummaryDto.fromJson(Map<String, Object?> json) {
+    return LearnQuestionSummaryDto(
+      id: json['id']! as String,
+      type: json['type']! as String,
+      difficulty: json['difficulty']! as int,
+      title: json['title']! as String,
+      codeLanguage: json['code_language'] as String? ?? '',
+      tags: (json['tags'] as List<Object?>? ?? const []).cast<String>(),
+      skillNodeId: json['skill_node_id'] as String?,
+      answered: json['answered'] as bool?,
+    );
+  }
+
+  final String id;
+  final String type;
+  final int difficulty;
+  final String title;
+  final String codeLanguage;
+  final List<String> tags;
+  final String? skillNodeId;
+  final bool? answered;
+}
+
+class LearnDueQuestionDto {
+  const LearnDueQuestionDto({required this.question, required this.dueOn});
+
+  factory LearnDueQuestionDto.fromJson(Map<String, Object?> json) =>
+      LearnDueQuestionDto(
+        question: LearnQuestionSummaryDto.fromJson(json),
+        dueOn: DateTime.parse(json['due_on']! as String),
+      );
+
+  final LearnQuestionSummaryDto question;
+  final DateTime dueOn;
+}
+
 class LearnSkillsResponseDto {
   const LearnSkillsResponseDto({required this.skills});
 

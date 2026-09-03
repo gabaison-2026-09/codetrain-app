@@ -36,4 +36,4 @@
 
 - 月移動、今日への復帰、学習日の目印、日付選択、選択日のタスク設定内容・問題数・進捗表示を実装済み。
 - Repository、APIレスポンスDTO、モックRepositoryを実装済み。
-- API Client / Data Sourceと認証を含む実通信は未実装。
+- `ApiCalendarRepository` による実通信とDTO変換を実装済み。Composition Rootでの切替は未対応。
