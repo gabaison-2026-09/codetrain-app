@@ -342,6 +342,8 @@ void main() {
     expect(find.text('7'), findsOneWidget);
     expect(find.text('連続日数'), findsOneWidget);
     expect(find.byIcon(Icons.play_arrow_rounded), findsOneWidget);
+    expect(find.text('コード読解'), findsOneWidget);
+    expect(find.textContaining('スロット 1'), findsNothing);
     expect(find.text('TS'), findsOneWidget);
     expect(find.text('今月の勉強量'), findsOneWidget);
     await tester.tap(find.byKey(const ValueKey('home-play-slot-0')));

@@ -150,7 +150,7 @@ class _HomeLoadingView extends StatelessWidget {
 HomeStudyTask _toHomeStudyTask(LearningTask task, TaskSlot slot) {
   return HomeStudyTask(
     id: task.id,
-    name: 'スロット ${slot.slotNo} · ${slot.questionType!.label}',
+    name: slot.questionType!.label,
     taskNo: slot.slotNo,
     languages: slot.language.isEmpty ? const [] : [slot.language],
   );
