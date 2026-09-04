@@ -107,7 +107,6 @@ class _HomePageState extends State<HomePage> {
       ),
       TaskPage(
         repository: widget.taskRepository,
-        taskLauncher: widget.taskLauncher,
         onTaskCatalogChanged: () => _taskSelectionVersion.value++,
       ),
       FriendPage(repository: widget.friendRepository),

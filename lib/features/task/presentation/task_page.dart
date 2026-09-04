@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import '../domain/task_configuration.dart';
-import '../domain/task_launcher.dart';
 import '../domain/task_repository.dart';
 import '../../../shared/widgets/programming_language_selector.dart';
 
@@ -9,12 +8,10 @@ class TaskPage extends StatefulWidget {
   const TaskPage({
     super.key,
     required this.repository,
-    required this.taskLauncher,
     this.onTaskCatalogChanged,
   });
 
   final TaskRepository repository;
-  final TaskLauncher taskLauncher;
   final VoidCallback? onTaskCatalogChanged;
 
   @override
@@ -26,11 +23,9 @@ class _TaskPageState extends State<TaskPage> {
   static const ink = Color(0xff222229);
   static const muted = Color(0xff777782);
   static const line = Color(0xffe3e3e9);
-  static const maxHomeTasks = 3;
 
   late final Future<TaskCatalog> _catalogFuture;
   TaskCatalog? _catalog;
-  String? _expandedTaskId;
 
   @override
   void initState() {
@@ -38,99 +33,13 @@ class _TaskPageState extends State<TaskPage> {
     _catalogFuture = widget.repository.fetchCatalog();
   }
 
-  Future<void> _handleCreateTask() async {
-    final catalog = _catalog;
-    if (catalog == null) return;
-    final result = await showModalBottomSheet<_TaskEditorResult>(
-      context: context,
-      isScrollControlled: true,
-      useSafeArea: true,
-      backgroundColor: Colors.white,
-      barrierColor: Colors.black.withValues(alpha: 0.28),
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
-      ),
-      builder: (context) => _TaskEditor(
-        options: catalog.options,
-      ),
-    );
-    if (result == null || !mounted) return;
-    await widget.repository.saveTask(result.task);
-    if (!mounted) return;
-    final updated = await widget.repository.fetchCatalog();
-    if (!mounted) return;
-    setState(() => _catalog = updated);
-    widget.onTaskCatalogChanged?.call();
-  }
-
-  void _handleTaskTap(LearningTask task) {
-    setState(() {
-      _expandedTaskId = _expandedTaskId == task.id ? null : task.id;
-    });
-  }
-
   Future<void> _handleSaveTask(LearningTask task) async {
     await widget.repository.saveTask(task);
     if (!mounted) return;
     final updated = await widget.repository.fetchCatalog();
     if (!mounted) return;
-    setState(() {
-      _catalog = updated;
-      _expandedTaskId = null;
-    });
-    widget.onTaskCatalogChanged?.call();
-  }
-
-  Future<void> _handleDeleteTask(String taskId) async {
-    await widget.repository.deleteTask(taskId);
-    if (!mounted) return;
-    final updated = await widget.repository.fetchCatalog();
-    if (!mounted) return;
-    setState(() {
-      _catalog = updated;
-      _expandedTaskId = null;
-    });
-    widget.onTaskCatalogChanged?.call();
-  }
-
-  Future<void> _handleToggleHomeTask(LearningTask task) async {
-    final catalog = _catalog;
-    if (catalog == null) return;
-    final homeTaskCount =
-        catalog.tasks.where((task) => task.isHomeTask).length;
-    if (!task.isHomeTask && homeTaskCount >= maxHomeTasks) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('ホームで開始できるタスクは3つまでです。')),
-      );
-      return;
-    }
-
-    await widget.repository.saveTask(
-      task.copyWith(isHomeTask: !task.isHomeTask),
-    );
-    if (!mounted) return;
-    final updated = await widget.repository.fetchCatalog();
-    if (!mounted) return;
     setState(() => _catalog = updated);
     widget.onTaskCatalogChanged?.call();
-  }
-
-  Future<void> _handleStartTask(LearningTask task) async {
-    try {
-      await widget.taskLauncher.start(
-        TaskLaunchTarget(name: task.name, taskId: task.id),
-      );
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('${task.name} を開始します。')),
-      );
-    } catch (_) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('タスクを開始できませんでした。')),
-      );
-    }
   }
 
   @override
@@ -146,7 +55,17 @@ class _TaskPageState extends State<TaskPage> {
             final mediaPadding = MediaQuery.paddingOf(context);
             final bottomScale = (constraints.maxWidth / 973).clamp(0.32, 1.0);
             final bottomHeight = 325 * bottomScale + mediaPadding.bottom;
-            final tasks = catalog.tasks;
+            final task = catalog.tasks.isEmpty
+                ? LearningTask(
+                    id: '',
+                    name: '学習タスク',
+                    isHomeTask: true,
+                    slots: List.generate(
+                      5,
+                      (index) => TaskSlot(slotNo: index + 1),
+                    ),
+                  )
+                : catalog.tasks.first;
             return SingleChildScrollView(
               padding: EdgeInsets.fromLTRB(
                 22,
@@ -160,68 +79,31 @@ class _TaskPageState extends State<TaskPage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      Row(
-                        children: [
-                          const Expanded(
-                            child: Text(
-                              'タスク',
-                              style: TextStyle(
-                                color: ink,
-                                fontFamily: 'Noto Sans Japanese',
-                                fontSize: 30,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-                          IconButton.filled(
-                            key: const ValueKey('task-add-button'),
-                            onPressed: _handleCreateTask,
-                            style: IconButton.styleFrom(
-                              backgroundColor: purple,
-                              foregroundColor: Colors.white,
-                              minimumSize: const Size.square(48),
-                            ),
-                            icon: const Icon(Icons.add_rounded, size: 28),
-                          ),
-                        ],
+                      const Text(
+                        'タスク',
+                        style: TextStyle(
+                          color: ink,
+                          fontFamily: 'Noto Sans Japanese',
+                          fontSize: 30,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                       const SizedBox(height: 8),
+                      const Text(
+                        '5つの学習スロットを設定してください',
+                        style: TextStyle(
+                          color: muted,
+                          fontFamily: 'Noto Sans Japanese',
+                          fontSize: 14,
+                        ),
+                      ),
                       const SizedBox(height: 18),
-                      const Divider(height: 1, color: line),
-                      for (final task in tasks) ...[
-                        _TaskRow(
-                          task: task,
-                          isExpanded: _expandedTaskId == task.id,
-                          onTap: () => _handleTaskTap(task),
-                          onStartTask: () => _handleStartTask(task),
-                          onHomeTaskToggle: () => _handleToggleHomeTask(task),
-                        ),
-                        AnimatedSize(
-                          duration: const Duration(milliseconds: 220),
-                          curve: Curves.easeInOut,
-                          child: _expandedTaskId == task.id
-                              ? _TaskEditor(
-                                  key: ValueKey('task-editor-${task.id}'),
-                                  initialTask: task,
-                                  options: catalog.options,
-                                  inline: true,
-                                  onSave: _handleSaveTask,
-                                  onDelete: () => _handleDeleteTask(task.id),
-                                )
-                              : const SizedBox.shrink(),
-                        ),
-                      ],
-                      if (tasks.isEmpty)
-                        const Padding(
-                          padding: EdgeInsets.symmetric(vertical: 54),
-                          child: Center(
-                            child: Icon(
-                              Icons.inbox_outlined,
-                              color: muted,
-                              size: 30,
-                            ),
-                          ),
-                        ),
+                      _TaskEditor(
+                        key: ValueKey('task-editor-${task.id}'),
+                        initialTask: task,
+                        options: catalog.options,
+                        onSave: _handleSaveTask,
+                      ),
                     ],
                   ),
                 ),
@@ -234,190 +116,36 @@ class _TaskPageState extends State<TaskPage> {
   }
 }
 
-class _TaskRow extends StatelessWidget {
-  const _TaskRow({
-    required this.task,
-    required this.isExpanded,
-    required this.onTap,
-    required this.onStartTask,
-    required this.onHomeTaskToggle,
-  });
-
-  final LearningTask task;
-  final bool isExpanded;
-  final VoidCallback onTap;
-  final VoidCallback onStartTask;
-  final VoidCallback onHomeTaskToggle;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      decoration: const BoxDecoration(
-        border: Border(bottom: BorderSide(color: _TaskPageState.line)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          InkWell(
-            key: ValueKey('task-${task.id}'),
-            onTap: onTap,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 12),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          task.name,
-                          style: const TextStyle(
-                            color: _TaskPageState.ink,
-                            fontFamily: 'Noto Sans Japanese',
-                            fontSize: 17,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        const SizedBox(height: 10),
-                        _SlotIndicator(slots: task.slots),
-                      ],
-                    ),
-                  ),
-                  Text(
-                    '${task.configuredSlotCount} / 5',
-                    style: const TextStyle(
-                      color: _TaskPageState.muted,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(width: 7),
-                  Icon(
-                    isExpanded
-                        ? Icons.expand_less_rounded
-                        : Icons.expand_more_rounded,
-                    color: _TaskPageState.muted,
-                  ),
-                ],
-              ),
-            ),
-          ),
-          Align(
-            alignment: Alignment.centerRight,
-            child: Wrap(
-              spacing: 4,
-              children: [
-                TextButton.icon(
-                  key: ValueKey('task-start-button-${task.id}'),
-                  onPressed: onStartTask,
-                  style: TextButton.styleFrom(
-                    foregroundColor: _TaskPageState.purple,
-                    padding: const EdgeInsets.symmetric(horizontal: 8),
-                    minimumSize: const Size(0, 40),
-                  ),
-                  icon: const Icon(Icons.play_arrow_rounded, size: 19),
-                  label: const Text('開始'),
-                ),
-                TextButton.icon(
-                  key: ValueKey('task-home-toggle-${task.id}'),
-                  onPressed: onHomeTaskToggle,
-                  style: TextButton.styleFrom(
-                    foregroundColor: task.isHomeTask
-                        ? _TaskPageState.purple
-                        : _TaskPageState.muted,
-                    padding: const EdgeInsets.symmetric(horizontal: 8),
-                    minimumSize: const Size(0, 40),
-                  ),
-                  icon: Icon(
-                    task.isHomeTask
-                        ? Icons.check_circle_outline_rounded
-                        : Icons.add_circle_outline_rounded,
-                  ),
-                  label: Text(task.isHomeTask ? '登録済み' : 'ホームに登録'),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _SlotIndicator extends StatelessWidget {
-  const _SlotIndicator({required this.slots});
-
-  final List<TaskSlot> slots;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: List.generate(5, (index) {
-        final isConfigured = slots.any(
-          (slot) => slot.slotNo == index + 1 && slot.isConfigured,
-        );
-        return Container(
-          width: 22,
-          height: 3,
-          margin: EdgeInsets.only(right: index == 4 ? 0 : 5),
-          decoration: BoxDecoration(
-            color: isConfigured ? _TaskPageState.purple : _TaskPageState.line,
-            borderRadius: BorderRadius.circular(2),
-          ),
-        );
-      }),
-    );
-  }
-}
-
-class _TaskEditorResult {
-  const _TaskEditorResult(this.task);
-
-  final LearningTask task;
-}
-
 class _TaskEditor extends StatefulWidget {
   const _TaskEditor({
     super.key,
-    this.initialTask,
+    required this.initialTask,
     required this.options,
-    this.inline = false,
-    this.onSave,
-    this.onDelete,
+    required this.onSave,
   });
 
-  final LearningTask? initialTask;
+  final LearningTask initialTask;
   final List<TaskOption> options;
-  final bool inline;
-  final Future<void> Function(LearningTask task)? onSave;
-  final Future<void> Function()? onDelete;
+  final Future<void> Function(LearningTask task) onSave;
 
   @override
   State<_TaskEditor> createState() => _TaskEditorState();
 }
 
 class _TaskEditorState extends State<_TaskEditor> {
-  late final TextEditingController _nameController;
   late List<TaskSlot> _slots;
+  var _isSaving = false;
 
   @override
   void initState() {
     super.initState();
-    _nameController = TextEditingController(text: widget.initialTask?.name);
     _slots = List.generate(5, (index) {
       final slotNo = index + 1;
-      for (final slot in widget.initialTask?.slots ?? const <TaskSlot>[]) {
+      for (final slot in widget.initialTask.slots) {
         if (slot.slotNo == slotNo) return slot;
       }
       return TaskSlot(slotNo: slotNo);
     });
-  }
-
-  @override
-  void dispose() {
-    _nameController.dispose();
-    super.dispose();
   }
 
   Future<void> _handleEditSlot(TaskSlot slot) async {
@@ -438,131 +166,99 @@ class _TaskEditorState extends State<_TaskEditor> {
   }
 
   Future<void> _handleSave() async {
-    final name = _nameController.text.trim();
-    if (name.isEmpty || !_slots.any((slot) => slot.isConfigured)) return;
-    final task = LearningTask(
-      id: widget.initialTask?.id ?? '',
-      name: name,
-      slots: List.unmodifiable(_slots),
-    );
-    if (widget.onSave != null) {
-      await widget.onSave!(task);
-    } else if (mounted) {
-      Navigator.pop(context, _TaskEditorResult(task));
-    }
-  }
-
-  Future<void> _handleDelete() async {
-    if (widget.onDelete != null) {
-      await widget.onDelete!();
-    } else if (mounted) {
-      Navigator.pop(context);
+    if (_isSaving || _slots.any((slot) => !slot.isConfigured)) return;
+    setState(() => _isSaving = true);
+    try {
+      await widget.onSave(
+        widget.initialTask.copyWith(
+          slots: List.unmodifiable(_slots),
+          isHomeTask: true,
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _isSaving = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final content = Padding(
-      padding: const EdgeInsets.fromLTRB(22, 12, 22, 18),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          if (!widget.inline) ...[
-            const _SheetHandle(),
-            const SizedBox(height: 20),
-          ],
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  widget.initialTask == null ? 'タスクを作成' : 'タスクを編集',
-                  style: const TextStyle(
-                    color: _TaskPageState.ink,
-                    fontFamily: 'Noto Sans Japanese',
-                    fontSize: 23,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-              if (widget.initialTask != null)
-                IconButton(
-                  key: const ValueKey('task-delete-button'),
-                  onPressed: _handleDelete,
-                  color: _TaskPageState.muted,
-                  icon: const Icon(Icons.delete_outline_rounded),
-                ),
-            ],
-          ),
-          const SizedBox(height: 18),
-          TextField(
-            key: const ValueKey('task-name-field'),
-            controller: _nameController,
-            onChanged: (_) => setState(() {}),
-            decoration: _fieldDecoration('名前'),
-          ),
-          const SizedBox(height: 18),
-          if (widget.inline)
-            Column(
+    final configuredSlotCount =
+        _slots.where((slot) => slot.isConfigured).length;
+    return DecoratedBox(
+      decoration: const BoxDecoration(
+        color: Color(0xfffafafd),
+        border: Border.symmetric(
+          horizontal: BorderSide(color: _TaskPageState.line),
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(18, 20, 18, 18),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
               children: [
-                for (var index = 0; index < _slots.length; index++) ...[
-                  if (index > 0)
-                    const Divider(height: 1, color: _TaskPageState.line),
-                  _EditorSlotRow(
-                    slot: _slots[index],
-                    onTap: () => _handleEditSlot(_slots[index]),
+                const Expanded(
+                  child: Text(
+                    '学習スロット',
+                    style: TextStyle(
+                      color: _TaskPageState.ink,
+                      fontFamily: 'Noto Sans Japanese',
+                      fontSize: 20,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
-                ],
-              ],
-            )
-          else
-            Expanded(
-              child: ListView.separated(
-                itemCount: 5,
-                separatorBuilder: (_, _) => const Divider(
-                  height: 1,
-                  color: _TaskPageState.line,
                 ),
-                itemBuilder: (context, index) {
-                  final slot = _slots[index];
-                  return _EditorSlotRow(
-                    slot: slot,
-                    onTap: () => _handleEditSlot(slot),
-                  );
-                },
-              ),
+                Text(
+                  '$configuredSlotCount / 5',
+                  style: const TextStyle(
+                    color: _TaskPageState.purple,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
             ),
-          const SizedBox(height: 14),
-          FilledButton(
-            key: const ValueKey('task-save-button'),
-            onPressed: _nameController.text.trim().isNotEmpty &&
-                    _slots.any((slot) => slot.isConfigured)
-                ? _handleSave
-                : null,
-            style: FilledButton.styleFrom(
-              backgroundColor: _TaskPageState.purple,
-              foregroundColor: Colors.white,
-              minimumSize: const Size.fromHeight(52),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(14),
+            const SizedBox(height: 10),
+            for (var index = 0; index < _slots.length; index++) ...[
+              if (index > 0)
+                const Divider(height: 1, color: _TaskPageState.line),
+              _EditorSlotRow(
+                slot: _slots[index],
+                onTap: () => _handleEditSlot(_slots[index]),
               ),
+            ],
+            if (configuredSlotCount < 5) ...[
+              const SizedBox(height: 10),
+              const Text(
+                '保存するには5つすべてのスロットを設定してください。',
+                style: TextStyle(
+                  color: _TaskPageState.muted,
+                  fontFamily: 'Noto Sans Japanese',
+                  fontSize: 12,
+                ),
+              ),
+            ],
+            const SizedBox(height: 14),
+            FilledButton(
+              key: const ValueKey('task-save-button'),
+              onPressed: configuredSlotCount == 5 && !_isSaving
+                  ? _handleSave
+                  : null,
+              style: FilledButton.styleFrom(
+                backgroundColor: _TaskPageState.purple,
+                foregroundColor: Colors.white,
+                minimumSize: const Size.fromHeight(52),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+              ),
+              child: Text(_isSaving ? '保存中...' : '保存'),
             ),
-            child: const Text('保存'),
-          ),
-        ],
+          ],
+        ),
       ),
     );
-    if (widget.inline) {
-      return DecoratedBox(
-        decoration: BoxDecoration(
-          color: const Color(0xfffafafd),
-          border: Border(
-            bottom: BorderSide(color: _TaskPageState.line),
-          ),
-        ),
-        child: content,
-      );
-    }
-    return FractionallySizedBox(heightFactor: 0.9, child: content);
   }
 }
 

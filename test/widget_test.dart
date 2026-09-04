@@ -53,7 +53,7 @@ void main() {
     final authRepository = _PendingGoogleAuthRepository();
     await tester.pumpWidget(CodeTrainApp(authRepository: authRepository));
 
-    expect(find.text('CodeTrain'), findsOneWidget);
+    expect(find.text('CodeYomel'), findsOneWidget);
     expect(
       find.byKey(const ValueKey('login-email-field')),
       findsOneWidget,
@@ -342,16 +342,18 @@ void main() {
     expect(find.text('7'), findsOneWidget);
     expect(find.text('連続日数'), findsOneWidget);
     expect(find.byIcon(Icons.play_arrow_rounded), findsOneWidget);
+    expect(find.text('コード読解'), findsOneWidget);
+    expect(find.textContaining('スロット 1'), findsNothing);
     expect(find.text('TS'), findsOneWidget);
     expect(find.text('今月の勉強量'), findsOneWidget);
-    await tester.tap(find.byKey(const ValueKey('home-play-task-0')));
+    await tester.tap(find.byKey(const ValueKey('home-play-slot-0')));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 500));
     expect(find.text('推論される型'), findsOneWidget);
     expect(find.byType(CodeTrainBottomNavigation), findsNothing);
   });
 
-  testWidgets('swiping the play area switches the whole study task', (
+  testWidgets('swiping the play area switches the five learning slots', (
     WidgetTester tester,
   ) async {
     tester.view.physicalSize = const Size(800, 1200);
@@ -374,8 +376,12 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 600));
 
-    expect(find.byKey(const ValueKey('home-programs-task-0')), findsOneWidget);
+    expect(find.byKey(const ValueKey('home-programs-slot-0')), findsOneWidget);
     expect(find.text('TS'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('home-slot-indicator-4')),
+      findsOneWidget,
+    );
 
     await tester.fling(
       find.byIcon(Icons.play_arrow_rounded),
@@ -385,14 +391,15 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 600));
 
-    expect(find.byKey(const ValueKey('home-programs-task-1')), findsOneWidget);
+    expect(find.byKey(const ValueKey('home-programs-slot-1')), findsOneWidget);
     expect(find.text('TS'), findsNothing);
+    expect(find.byKey(const ValueKey('home-generic-task-icon')), findsOneWidget);
 
-    await tester.tap(find.byKey(const ValueKey('home-play-task-1')));
+    await tester.tap(find.byKey(const ValueKey('home-play-slot-1')));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 500));
 
-    expect(find.text('Ruby の条件分岐'), findsOneWidget);
+    expect(find.text('map の戻り値'), findsOneWidget);
     expect(find.byType(CodeTrainBottomNavigation), findsNothing);
   });
 
@@ -748,21 +755,19 @@ void main() {
     );
   });
 
-  test('updating a task keeps its position in the catalog', () async {
+  test('saving another task replaces the single task in the catalog', () async {
     final repository = MockTaskRepository();
     final initial = await repository.fetchCatalog();
-    final task = initial.tasks[1];
+    final task = initial.tasks.single;
 
-    await repository.saveTask(task.copyWith(isHomeTask: !task.isHomeTask));
+    await repository.saveTask(task.copyWith(name: '更新後の学習タスク'));
     final updated = await repository.fetchCatalog();
 
-    expect(
-      updated.tasks.map((task) => task.id),
-      equals(initial.tasks.map((task) => task.id)),
-    );
+    expect(updated.tasks, hasLength(1));
+    expect(updated.tasks.single.name, '更新後の学習タスク');
   });
 
-  testWidgets('task screen shows tasks and opens the creation modal', (
+  testWidgets('task screen only shows the five editable slots', (
     WidgetTester tester,
   ) async {
     await tester.pumpWidget(
@@ -778,57 +783,16 @@ void main() {
     );
     await tester.pump(const Duration(milliseconds: 600));
 
+    expect(find.text('学習スロット'), findsOneWidget);
     expect(
-      find.byKey(const ValueKey('task-task-typescript-basics')),
+      find.byKey(const ValueKey('task-editor-learning-task')),
       findsOneWidget,
     );
-    expect(find.byKey(const ValueKey('task-task-ruby-reading')), findsOneWidget);
-    expect(find.text('ホームで開始するタスク  3 / 3'), findsOneWidget);
-    expect(find.byKey(const ValueKey('task-task-csharp-basics')), findsOneWidget);
-    expect(find.byKey(const ValueKey('task-task-ruby-advanced')), findsOneWidget);
-
-    await tester.tap(
-      find.byKey(const ValueKey('task-home-toggle-task-ruby-advanced')),
-    );
-    await tester.pump();
-    expect(find.text('ホームで開始できるタスクは3つまでです。'), findsOneWidget);
-    expect(
-      find.descendant(
-        of: find.byKey(
-          const ValueKey('task-home-toggle-task-ruby-advanced'),
-        ),
-        matching: find.byIcon(Icons.add_circle_outline_rounded),
-      ),
-      findsOneWidget,
-    );
-
-    await tester.tap(
-      find.byKey(const ValueKey('task-start-button-task-typescript-basics')),
-    );
-    await tester.pump();
-    expect(find.text('TypeScript 基礎 を開始します。'), findsOneWidget);
-
-    await tester.tap(find.byKey(const ValueKey('task-task-typescript-basics')));
-    await tester.pumpAndSettle();
-
-    expect(find.text('タスクを編集'), findsOneWidget);
-    expect(
-      find.byKey(const ValueKey('task-editor-typescript-basics')),
-      findsOneWidget,
-    );
-    expect(find.byType(ModalBarrier), findsNothing);
-
-    await tester.tap(find.byKey(const ValueKey('task-task-typescript-basics')));
-    await tester.pumpAndSettle();
-    expect(find.text('タスクを編集'), findsNothing);
-
-    await tester.tap(find.byKey(const ValueKey('task-add-button')));
-    await tester.pumpAndSettle();
-
-    expect(find.text('タスクを作成'), findsOneWidget);
     expect(find.byKey(const ValueKey('task-editor-slot-1')), findsOneWidget);
     expect(find.byKey(const ValueKey('task-editor-slot-5')), findsOneWidget);
     expect(find.byKey(const ValueKey('task-save-button')), findsOneWidget);
+    expect(find.byKey(const ValueKey('task-add-button')), findsNothing);
+    expect(find.byIcon(Icons.add_rounded), findsNothing);
   });
 
   test('learning API DTOs map to domain models', () {
@@ -1062,8 +1026,8 @@ class _FakeHomeDashboardRepository implements HomeDashboardRepository {
       activityDate: DateTime(2026, 8, 5),
       streakDays: 7,
       studyTasks: const [
-        HomeStudyTask(languages: [HomeLanguage.typescript]),
-        HomeStudyTask(languages: [HomeLanguage.csharp, HomeLanguage.ruby]),
+        HomeStudyTask(languages: ['typescript']),
+        HomeStudyTask(languages: ['csharp']),
       ],
       taskProgress: const HomeTaskProgress(completedTasks: 2, totalTasks: 5),
       monthlyProgress: const HomeMonthlyProgress(studiedDays: 16, maxDays: 30),

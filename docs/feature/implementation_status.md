@@ -18,12 +18,12 @@
 | 機能 | 現在の実装 | 現在のデータ元 | API接続時の候補 | 主な実装箇所 |
 | --- | --- | --- | --- | --- |
 | 認証 | メール／パスワード入力、パスワード表示切り替え、Googleログイン、アカウント新規作成、入力検証、ログイン後のホーム表示、新規作成後の初回タスク提案遷移を実装済み | `MockAuthRepository` | Firebase Authenticationを実装するRepositoryへ差し替え。Firebase IDトークンをBearerトークンに使用する想定 | `lib/features/authentication/`、`lib/app/app.dart` |
-| 初回タスク提案 | 新規作成後の4問、経験スライダー、提案確認、タスク保存を実装済み | `MockTaskRecommendationRepository` | `POST /v1/task-recommendations` で回答を一時処理し、確定時だけ `POST /v1/tasks` で保存 | `lib/features/onboarding/`、`lib/app/app.dart` |
+| 初回タスク提案 | 新規作成後の4問、経験スライダー、提案確認、5スロット保存を実装済み | `MockTaskRecommendationRepository` | `POST /v1/task-recommendations` で回答を一時処理し、確定時に `PUT /v1/task-slots/{slot_no}` で保存 | `lib/features/onboarding/`、`lib/app/app.dart` |
 | アプリ全体・タブ切り替え | Calendar / Learn / Home / Task / Friend の5タブ、260msのフェード＋横スライド、トップ・ボトムナビゲーションの共通表示を実装済み | 画面内の状態 | API不要 | `lib/features/home/presentation/home_page.dart`、`lib/shared/widgets/` |
 | トップナビゲーション | レベル、経験値進捗、ハートを表示済み。ホーム画面の全タブ共通レイアウト上部に表示 | `MockTopNavigationRepository` | `GET /v1/me` の `progress` | `lib/shared/widgets/code_train_top_navigation.dart`、`lib/features/home/` |
-| ホームダッシュボード | 日付、連続学習日数、当日のタスク消化ゲージ、月間進捗、最大3件のホーム対象タスク、スワイプ切り替え、言語アイコン、再生ボタンからの学習開始を実装済み | `MockHomeDashboardRepository`、`MockTaskRepository`、`MockLearnRepository` | `GET /v1/home`。連続学習日数は `GET /v1/me` の `progress.streak_days` を利用する想定 | `lib/features/home/presentation/home_page.dart`、`lib/features/home/presentation/home_tab_page.dart`、`lib/features/home/domain/` |
+| ホームダッシュボード | 日付、連続学習日数、当日のタスク消化ゲージ、月間進捗、単一タスク内の5スロットのスワイプ切り替え、言語アイコン1個、再生ボタンからの学習開始を実装済み | `MockHomeDashboardRepository`、`MockTaskRepository`、`MockLearnRepository` | `GET /v1/home`。連続学習日数は `GET /v1/me` の `progress.streak_days` を利用する想定 | `lib/features/home/presentation/home_page.dart`、`lib/features/home/presentation/home_tab_page.dart`、`lib/features/home/domain/` |
 | 学習 | スキル／学習項目の検索・絞り込み、タスク設定に対応した学習開始、四択回答、正誤・正解・解説・XP表示、途中終了、5問ごとのフィードバック、直近5問の振り返りを実装済み | `MockLearnRepository` | `GET /v1/skills`、`GET /v1/questions?skill_node_id=...`、タスク開始時は問題種別・言語・難易度の条件で `GET /v1/questions` を利用する想定、回答時に `POST /v1/questions/{id}/attempts` | `lib/features/learn/presentation/`、`lib/features/learn/domain/`、`lib/features/learn/data/` |
-| タスク管理 | 複数タスクの一覧、開始、ホーム対象の最大3件選択、作成、編集、5スロット設定、削除を実装済み | `MockTaskRepository`、開始通知は `MockTaskLauncher` | 選択肢は `GET /v1/task-slots/options`。ただし一覧・保存・削除は現行 `/v1/task-slots` では複数タスクを表現できず、タスク単位APIの追加が必要 | `lib/features/task/presentation/task_page.dart`、`lib/features/task/domain/`、`lib/features/task/data/` |
+| タスク管理 | 単一タスクの5スロット編集を実装済み。タスクの追加・削除・ホーム登録UIはなし | `MockTaskRepository` | `GET /v1/task-slots`、`PUT /v1/task-slots/{slot_no}`、`GET /v1/task-slots/options` の現行契約と一致 | `lib/features/task/presentation/task_page.dart`、`lib/features/task/domain/`、`lib/features/task/data/` |
 | Calendar | 月移動、今日への復帰、連続日をつないだ淡い紫の学習日表示、選択日のタスク設定内容・問題数・進捗表示を実装済み | `MockCalendarRepository` | `GET /v1/calendar` | `lib/features/calendar/presentation/`、`lib/features/calendar/domain/`、`lib/features/calendar/data/` |
 | Friend | モーダルでの公開用ユーザーID完全一致検索、関係別絞り込み、連続学習日数、申請送信・取消、承認・拒否、メニューからのフレンド解除を実装済み | `MockFriendRepository` | `GET /v1/users/by-code/{user_code}`、`GET /v1/friends`、`/v1/friend-requests`、`DELETE /v1/friends/{user_id}` の暫定契約 | `lib/features/friend/presentation/`、`lib/features/friend/domain/`、`lib/features/friend/data/` |
 
@@ -102,19 +102,17 @@ API版へ接続するときは、対象featureの `data/` にAPI Client / Data S
   - 問題取得: `GET /v1/questions?skill_node_id=...`、必要に応じて `GET /v1/questions/{id}`
   - 回答送信: `POST /v1/questions/{id}/attempts`
 - 回答時は `selected_keys` と `duration_ms` を送信し、`is_correct`、`correct_keys`、`explanation`、`xp_gained` を `LearnAttemptResult` へ変換します。
-- ホーム開始時は、タスクの設定スロットを `LearnQuestionFilter` へ変換し、問題種別・言語・難易度に一致する問題を取得します。ホームタスクのスワイプ時も表示タスクと同じインデックスの設定を使います。
+- ホーム開始時は、選択中の1スロットを `LearnQuestionFilter` へ変換し、問題種別・言語・難易度に一致する問題を取得します。ホームのスワイプは単一タスク内の5スロットを切り替えます。
 - 問題は現在モックに含まれる問題セットを繰り返し出題します。API版では一覧取得、ページング、問題枯渇時の扱いをRepository側で決めます。
 - 読み込み失敗・回答送信失敗の表示枠は実装済みですが、API通信によるエラー変換は未実装です。
 
 ### タスク管理
 
-- Repository: `TaskRepository.fetchCatalog()`、`saveTask()`、`deleteTask()`
+- Repository: `TaskRepository.fetchCatalog()`、`saveTask()`（`deleteTask()` は既存API互換用に残すが画面からは使用しない）
 - モック: `MockTaskRepository`
-- 起動境界: `TaskLauncher.start()`、モックは開始通知のみで実処理なし
 - DTO: `TaskSlotDto`、`LearningTaskDto`、`TaskOptionDto`
-- 継続利用するAPI: `GET /v1/task-slots/options`
-- 現行API設計の `/v1/task-slots` はユーザー単位の5スロットを扱うため、アプリの要件である「複数タスク」「`task_id`」「名前」「`is_home_task`」「ホーム対象最大3件」と一致しません。
-- API接続前に、タスク単位の一覧・作成・更新・削除APIを追加し、`TaskRepository` の各操作へ対応させる必要があります。詳細な不足事項は [`docs/API_DESIGN.md`](../API_DESIGN.md) のタスク画面節に記載されています。
+- 接続先: `GET /v1/task-slots`、`PUT /v1/task-slots/{slot_no}`、`DELETE /v1/task-slots/{slot_no}`、`GET /v1/task-slots/options`
+- 現行APIのユーザー単位5スロットと、アプリの単一タスク仕様は一致しています。
 
 ### 初回タスク提案
 
@@ -122,7 +120,7 @@ API版へ接続するときは、対象featureの `data/` にAPI Client / Data S
 - モック: `MockTaskRecommendationRepository`
 - 接続先: `POST /v1/task-recommendations`
 - 回答は正規化済みIDだけを送信し、バックエンドでは提案処理中だけ利用して保持しません。
-- 提案確定後は既存の `TaskRepository.saveTask()` を通して `POST /v1/tasks` へ保存します。
+- 提案確定後は既存の `TaskRepository.saveTask()` を通し、5スロットを `PUT /v1/task-slots/{slot_no}` へ保存します。
 - API、提案ロジック、データ保持の詳細は [`task_recommendation.md`](task_recommendation.md) と [`docs/API_DESIGN.md`](../API_DESIGN.md) に記載しています。
 
 ### フレンド
@@ -150,8 +148,7 @@ API版へ接続するときは、対象featureの `data/` にAPI Client / Data S
 - API Clientで使用する通信・認証方式。アプリはFirebase Authenticationを予定していますが、API設計上は `Authorization: Bearer <Cognito JWT>` のため、接続前にFirebase IDトークンへ統一するか確定する必要があります。
 - `GET /v1/me` で経験値進捗率とハート上限をどのように返すか。
 - XP配点、ハート回復、streak判定タイムゾーン、SRS更新規則。
-- ホームの再生ボタンおよびタスク画面の開始ボタンが呼び出す開始API。
-- 複数タスクを扱うタスク単位APIの仕様。
+- ホームの再生ボタンが呼び出す、スロット単位の開始API。
 - 初回タスク提案ロジックの具体的な重みと、利用可能な問題が不足する場合の言語なしスロット構成。
 - フレンド検索の公開範囲、ブロック機能、申請・解除後の保持期間。
 - APIエラーをRepositoryがどのドメインエラーへ変換し、各画面でどう表示するか。

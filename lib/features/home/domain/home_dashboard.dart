@@ -1,5 +1,3 @@
-enum HomeLanguage { csharp, typescript, ruby }
-
 class HomeStudyTask {
   const HomeStudyTask({
     this.id = '',
@@ -11,7 +9,7 @@ class HomeStudyTask {
   final String id;
   final String name;
   final int? taskNo;
-  final List<HomeLanguage> languages;
+  final List<String> languages;
 }
 
 class HomeMonthlyProgress {

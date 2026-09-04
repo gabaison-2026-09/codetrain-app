@@ -90,7 +90,7 @@ class _CodeTrainAppState extends State<CodeTrainApp> {
         widget.calendarRepository ?? const MockCalendarRepository();
 
     return MaterialApp(
-      title: 'CodeTrain',
+      title: 'CodeYomel',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.black),

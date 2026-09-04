@@ -17,50 +17,15 @@ class MockTaskRepository implements TaskRepository {
 
   static const _taskResponse = <Map<String, Object?>>[
     {
-      'id': 'task-typescript-basics',
-      'name': 'TypeScript 基礎',
+      'id': 'learning-task',
+      'name': '学習タスク',
       'is_home_task': true,
       'slots': [
         {'slot_no': 1, 'question_type': 'code_reading', 'language': 'typescript', 'difficulty': null},
         {'slot_no': 2, 'question_type': 'output_prediction', 'language': '', 'difficulty': 2},
-        {'slot_no': 3, 'question_type': 'code_reading', 'language': 'typescript', 'difficulty': 2},
-        {'slot_no': 4},
-        {'slot_no': 5},
-      ],
-    },
-    {
-      'id': 'task-ruby-reading',
-      'name': 'Ruby 読解',
-      'is_home_task': true,
-      'slots': [
-        {'slot_no': 1, 'question_type': 'code_reading', 'language': 'ruby', 'difficulty': 1},
-        {'slot_no': 2, 'question_type': 'code_reading', 'language': 'ruby', 'difficulty': 2},
-        {'slot_no': 3},
-        {'slot_no': 4},
-        {'slot_no': 5},
-      ],
-    },
-    {
-      'id': 'task-csharp-basics',
-      'name': 'C# 基礎',
-      'is_home_task': true,
-      'slots': [
-        {'slot_no': 1, 'question_type': 'code_reading', 'language': 'csharp', 'difficulty': 1},
-        {'slot_no': 2, 'question_type': 'output_prediction', 'language': '', 'difficulty': 2},
-        {'slot_no': 3},
-        {'slot_no': 4},
-        {'slot_no': 5},
-      ],
-    },
-    {
-      'id': 'task-ruby-advanced',
-      'name': 'Ruby 応用',
-      'slots': [
-        {'slot_no': 1, 'question_type': 'code_reading', 'language': 'ruby', 'difficulty': 3},
-        {'slot_no': 2},
-        {'slot_no': 3},
-        {'slot_no': 4},
-        {'slot_no': 5},
+        {'slot_no': 3, 'question_type': 'code_reading', 'language': 'ruby', 'difficulty': 2},
+        {'slot_no': 4, 'question_type': 'code_reading', 'language': 'csharp', 'difficulty': 1},
+        {'slot_no': 5, 'question_type': 'code_reading', 'language': 'typescript', 'difficulty': 3},
       ],
     },
   ];
@@ -106,21 +71,16 @@ class MockTaskRepository implements TaskRepository {
   Future<LearningTask> saveTask(LearningTask task) async {
     final savedTask = task.id.isEmpty
         ? LearningTask(
-            id: 'task-${_tasks.length + 1}',
+            id: 'learning-task',
             name: task.name,
             slots: task.slots,
-            isHomeTask: task.isHomeTask,
+            isHomeTask: true,
           )
-        : task;
-    if (task.id.isEmpty) {
+        : task.copyWith(isHomeTask: true);
+    if (_tasks.isEmpty) {
       _tasks.add(savedTask);
     } else {
-      final index = _tasks.indexWhere((current) => current.id == savedTask.id);
-      if (index == -1) {
-        _tasks.add(savedTask);
-      } else {
-        _tasks[index] = savedTask;
-      }
+      _tasks[0] = savedTask;
     }
     return savedTask;
   }

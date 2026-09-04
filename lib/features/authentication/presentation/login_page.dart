@@ -344,7 +344,7 @@ class _CodeTrainMark extends StatelessWidget {
         ),
         const SizedBox(height: 18),
         const Text(
-          'CodeTrain',
+          'CodeYomel',
           textAlign: TextAlign.center,
           style: TextStyle(
             color: Color(0xff222229),
