@@ -53,7 +53,7 @@ void main() {
     final authRepository = _PendingGoogleAuthRepository();
     await tester.pumpWidget(CodeTrainApp(authRepository: authRepository));
 
-    expect(find.text('CodeTrain'), findsOneWidget);
+    expect(find.text('CodeYomel'), findsOneWidget);
     expect(
       find.byKey(const ValueKey('login-email-field')),
       findsOneWidget,

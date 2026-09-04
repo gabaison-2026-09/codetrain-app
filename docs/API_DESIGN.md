@@ -1,4 +1,4 @@
-# CodeTrain — 配信API設計
+# CodeYomel — 配信API設計
 
 `codetrain-api`（配信API）が Flutter アプリ（`codetrain-app`）とレビュー画面（`codetrain-admin`）に提供するエンドポイントの設計。
 

@@ -31,7 +31,7 @@ class OpenSourceLicensesPage extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(24, 12, 24, 32),
             children: const [
               Text(
-                'CodeTrainでは、プログラミング言語を示すアイコンにオープンソースの素材を使用しています。',
+                'CodeYomelでは、プログラミング言語を示すアイコンにオープンソースの素材を使用しています。',
                 style: TextStyle(
                   color: _textColor,
                   fontFamily: 'Noto Sans Japanese',
@@ -178,4 +178,4 @@ https://creativecommons.org/licenses/by/4.0/
 const _trademarkNotice = '''
 Python、Dart、Rust、Swift、C++、Go、Java、Kotlin、TypeScript、JavaScript、C#、PHPなどの名称・ロゴは、それぞれの権利者に帰属します。
 
-CodeTrainでの使用は、学習対象の言語を示すための参照目的です。CodeTrainが各プロジェクトから承認・後援されていること、または各プロジェクトと提携していることを示すものではありません。''';
+CodeYomelでの使用は、学習対象の言語を示すための参照目的です。CodeYomelが各プロジェクトから承認・後援されていること、または各プロジェクトと提携していることを示すものではありません。''';

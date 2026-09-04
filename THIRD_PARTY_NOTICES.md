@@ -8,7 +8,7 @@ the MIT License. The copyright notice and license text are included in
 [`assets/icons/programming_languages/LICENSE`](assets/icons/programming_languages/LICENSE).
 
 The icons are used only to identify the corresponding programming languages.
-They are not the logo of CodeTrain and do not indicate sponsorship,
+They are not the logo of CodeYomel and do not indicate sponsorship,
 endorsement, or affiliation with any language project or trademark owner.
 
 Some underlying logo artwork has additional attribution or license terms:

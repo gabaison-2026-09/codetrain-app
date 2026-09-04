@@ -104,7 +104,7 @@ class _CreateAccountPageState extends State<CreateAccountPage> {
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
                           const Text(
-                            'CodeTrainをはじめよう',
+                            'CodeYomelをはじめよう',
                             textAlign: TextAlign.center,
                             style: TextStyle(
                               color: Color(0xff222229),

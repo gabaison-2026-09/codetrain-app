@@ -6,6 +6,7 @@
 
 | 機能 | 仕様書 | 用途 | 主な実装箇所 |
 | --- | --- | --- | --- |
+| アプリ名称 | [`app_branding.md`](app_branding.md) | ユーザー向けのアプリ名称を `CodeYomel` に統一する。 | `lib/app/app.dart`、`lib/features/authentication/`、`lib/features/legal/`、`android/app/src/main/AndroidManifest.xml`、`ios/Runner/Info.plist` |
 | 認証 | [`authentication.md`](authentication.md) | メール／パスワードまたはGoogleでログインでき、メール／パスワードによるアカウント新規作成にも対応する。新規作成時のパスワード入力は自動入力候補によるキーボード切断を避ける。現在はFirebase接続前のモック認証を使用する。 | `lib/features/authentication/`、`lib/app/app.dart` |
 | 初回タスク提案 | [`task_recommendation.md`](task_recommendation.md) | 新規アカウント作成後に目的、希望言語、経験などを質問し、回答に合う最初の学習タスクを提案する。 | `lib/features/onboarding/`、`lib/app/app.dart` |
 | ボトムナビゲーション | [`bottom_navigation.md`](bottom_navigation.md) | ホーム画面下部に Calendar、Learn、Home、Task、Friend の5つのタブを表示し、膨らみや押し出しのない基準位置とトレイ上端より下の領域による当たり判定で選択状態に応じて対応する画面へ切り替える。選択中の拡大円は分離前は白、分離後はタブごとの淡い色と同系色の輪郭線で表示し、分離時に触覚フィードバックを発生させる。 | `lib/shared/widgets/code_train_bottom_navigation.dart`、`lib/features/*/presentation/*_page.dart` |
