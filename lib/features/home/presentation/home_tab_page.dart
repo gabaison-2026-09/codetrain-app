@@ -83,24 +83,34 @@ class _HomeTabPageState extends State<HomeTabPage> {
             if (taskSnapshot.connectionState != ConnectionState.done) {
               return const _HomeLoadingView();
             }
-            final configuredTasks = taskSnapshot.data?.tasks
-                .where((task) => task.isHomeTask)
-                .take(3)
+            final catalogTasks = taskSnapshot.data?.tasks;
+            final learningTask = catalogTasks == null || catalogTasks.isEmpty
+                ? null
+                : catalogTasks.first;
+            final configuredSlots = learningTask?.slots
+                .where((slot) => slot.isConfigured)
+                .take(5)
                 .toList();
-            final selectedTasks = configuredTasks == null
+            configuredSlots?.sort(
+              (left, right) => left.slotNo.compareTo(right.slotNo),
+            );
+            final selectedTasks = configuredSlots == null
                 ? dashboard.studyTasks
                 : [
-                    for (var index = 0; index < configuredTasks.length; index++)
-                      _toHomeStudyTask(
-                        configuredTasks[index],
-                        taskNo: index + 1,
-                      ),
+                    for (final slot in configuredSlots)
+                      _toHomeStudyTask(learningTask!, slot),
+                  ];
+            final slotConfigurations = configuredSlots == null
+                ? null
+                : [
+                    for (final slot in configuredSlots)
+                      learningTask!.copyWith(slots: [slot]),
                   ];
             return _HomeDashboardView(
               dashboard: dashboard,
               taskLauncher: widget.taskLauncher,
               studyTasks: selectedTasks,
-              taskConfigurations: configuredTasks,
+              taskConfigurations: slotConfigurations,
               taskCompletionVersion: widget.taskCompletionVersion,
               onDashboardLoaded: widget.onDashboardLoaded,
               isVisible: widget.isVisible,
@@ -137,24 +147,12 @@ class _HomeLoadingView extends StatelessWidget {
   }
 }
 
-HomeStudyTask _toHomeStudyTask(LearningTask task, {required int taskNo}) {
-  final languages = <HomeLanguage>[];
-  for (final slot in task.slots) {
-    final language = switch (slot.language) {
-      'csharp' => HomeLanguage.csharp,
-      'typescript' => HomeLanguage.typescript,
-      'ruby' => HomeLanguage.ruby,
-      _ => null,
-    };
-    if (language != null && !languages.contains(language)) {
-      languages.add(language);
-    }
-  }
+HomeStudyTask _toHomeStudyTask(LearningTask task, TaskSlot slot) {
   return HomeStudyTask(
     id: task.id,
-    name: task.name,
-    taskNo: taskNo,
-    languages: List.unmodifiable(languages),
+    name: 'スロット ${slot.slotNo} · ${slot.questionType!.label}',
+    taskNo: slot.slotNo,
+    languages: slot.language.isEmpty ? const [] : [slot.language],
   );
 }
 
@@ -464,7 +462,7 @@ class _HomeDashboardViewState extends State<_HomeDashboardView> {
                         );
                       },
                       child: _PlayButton(
-                        key: ValueKey('home-play-task-$_selectedTaskIndex'),
+                        key: ValueKey('home-play-slot-$_selectedTaskIndex'),
                         color: _selectedTaskColor,
                         onPressed: _isStartingTask
                             ? null
@@ -497,7 +495,7 @@ class _HomeDashboardViewState extends State<_HomeDashboardView> {
                         );
                       },
                       child: _ProgramRow(
-                        key: ValueKey('home-programs-task-$_selectedTaskIndex'),
+                        key: ValueKey('home-programs-slot-$_selectedTaskIndex'),
                         taskName: _selectedTask.name,
                         languages: _selectedTask.languages,
                       ),
@@ -939,6 +937,7 @@ class _TaskIndicator extends StatelessWidget {
         for (var index = 0; index < count; index++) ...[
           if (index > 0) const SizedBox(width: 6),
           AnimatedContainer(
+            key: ValueKey('home-slot-indicator-$index'),
             duration: const Duration(milliseconds: 260),
             curve: Curves.easeOut,
             width: index == selectedIndex ? 7 : 4,
@@ -1089,7 +1088,7 @@ class _ProgramRow extends StatelessWidget {
   });
 
   final String taskName;
-  final List<HomeLanguage> languages;
+  final List<String> languages;
 
   @override
   Widget build(BuildContext context) {
@@ -1107,16 +1106,15 @@ class _ProgramRow extends StatelessWidget {
           ),
           const SizedBox(height: 12),
         ],
-        Wrap(
-          alignment: WrapAlignment.center,
-          spacing: 23,
-          runSpacing: 12,
-          children: [
-            for (final language in languages)
-              _ProgramIcon(language: language),
-            const _AddProgramButton(),
-          ],
-        ),
+        if (languages.isNotEmpty)
+          _ProgramIcon(language: languages.first)
+        else
+          const Icon(
+            Icons.code_rounded,
+            key: ValueKey('home-generic-task-icon'),
+            color: Color(0xff6263d9),
+            size: 36,
+          ),
       ],
     );
   }
@@ -1125,34 +1123,11 @@ class _ProgramRow extends StatelessWidget {
 class _ProgramIcon extends StatelessWidget {
   const _ProgramIcon({required this.language});
 
-  final HomeLanguage language;
+  final String language;
 
   @override
   Widget build(BuildContext context) {
-    switch (language) {
-      case HomeLanguage.csharp:
-        return const ProgrammingLanguageIcon(language: 'csharp', size: 36);
-      case HomeLanguage.typescript:
-        return const ProgrammingLanguageIcon(
-          language: 'typescript',
-          size: 36,
-        );
-      case HomeLanguage.ruby:
-        return const ProgrammingLanguageIcon(language: 'ruby', size: 36);
-    }
-  }
-}
-
-class _AddProgramButton extends StatelessWidget {
-  const _AddProgramButton();
-
-  @override
-  Widget build(BuildContext context) {
-    return const SizedBox(
-      width: 36,
-      height: 36,
-      child: CustomPaint(painter: _AddProgramButtonPainter()),
-    );
+    return ProgrammingLanguageIcon(language: language, size: 36);
   }
 }
 
@@ -1180,34 +1155,4 @@ class _OpenSourceLicensesLink extends StatelessWidget {
       ),
     );
   }
-}
-
-class _AddProgramButtonPainter extends CustomPainter {
-  const _AddProgramButtonPainter();
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    canvas.scale(size.width / 30, size.height / 30);
-    final stroke = Paint()
-      ..color = Colors.black
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.7;
-    const center = Offset(15, 15);
-    const radius = 12.0;
-    for (var index = 0; index < 16; index++) {
-      final start = (index * 3.14159265359 / 8 + 0.05).toDouble();
-      canvas.drawArc(
-        Rect.fromCircle(center: center, radius: radius),
-        start,
-        0.14,
-        false,
-        stroke,
-      );
-    }
-    canvas.drawLine(const Offset(10, 15), const Offset(20, 15), stroke);
-    canvas.drawLine(const Offset(15, 10), const Offset(15, 20), stroke);
-  }
-
-  @override
-  bool shouldRepaint(covariant _AddProgramButtonPainter oldDelegate) => false;
 }

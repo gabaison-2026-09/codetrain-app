@@ -13,23 +13,19 @@ class MockHomeDashboardRepository implements HomeDashboardRepository {
           id: 'task-csharp-typescript-ruby',
           name: 'C#・TypeScript・Ruby',
           taskNo: 1,
-          languages: [
-            HomeLanguage.csharp,
-            HomeLanguage.typescript,
-            HomeLanguage.ruby,
-          ],
+          languages: ['csharp'],
         ),
         HomeStudyTask(
           id: 'task-typescript-ruby',
           name: 'TypeScript・Ruby',
           taskNo: 2,
-          languages: [HomeLanguage.typescript, HomeLanguage.ruby],
+          languages: ['typescript'],
         ),
         HomeStudyTask(
           id: 'task-csharp',
           name: 'C# 基礎',
           taskNo: 3,
-          languages: [HomeLanguage.csharp],
+          languages: ['csharp'],
         ),
       ],
       taskProgress: const HomeTaskProgress(
